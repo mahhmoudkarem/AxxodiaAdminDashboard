@@ -1,0 +1,59 @@
+<app-page-header title="My profile" subtitle="Your account and permissions" icon="fa-user" />
+
+@if (auth.user(); as u) {
+  <div class="grid gap-6 xl:grid-cols-3">
+    <div class="card overflow-hidden">
+      <div class="flex justify-center bg-brand-dark px-6 py-8">
+        <app-brand-logo variant="light" imgClass="h-20 w-auto" />
+      </div>
+      <div class="p-6 text-center">
+        <div class="mx-auto -mt-14 flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-brand-beige font-heading text-3xl font-bold text-brand-brown shadow">{{ auth.initials() }}</div>
+        <h2 class="mt-3 font-heading text-2xl font-bold text-brand-brown">{{ auth.displayName() }}</h2>
+        <p class="text-sm text-stone-400">{{ u.email }}</p>
+        <span class="chip mt-3 bg-brand-brown/10 text-brand-brown">{{ u.role | humanize }}</span>
+      </div>
+    </div>
+
+    <div class="card card-body xl:col-span-2" id="password">
+      <h3 class="card-title mb-1">Change password</h3>
+      <p class="muted mb-5">After changing it you will be signed out and sign in again with the new password.</p>
+      <app-change-password [embedded]="true" />
+    </div>
+
+    @if (isSuperAdmin()) {
+      <div class="card card-body xl:col-span-3">
+        <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 class="card-title"><i class="fa-solid fa-flask text-brand-taupe"></i> Test data</h3>
+            <p class="muted mt-1 max-w-2xl">
+              Fake locations, rooms, customers, staff, reservations, chats, tasks and guest-service requests for trying the system.
+              Remove them before going live. Only the super admin sees this.
+            </p>
+          </div>
+          <div class="flex shrink-0 gap-2">
+            <button type="button" class="btn btn-outline !text-danger" (click)="removeDemo()" [disabled]="!!demoBusy()">
+              <i class="fa-solid" [class.fa-trash]="demoBusy() !== 'remove'" [class.fa-circle-notch]="demoBusy() === 'remove'" [class.fa-spin]="demoBusy() === 'remove'"></i>
+              Remove test data
+            </button>
+            <button type="button" class="btn btn-primary" (click)="createDemo()" [disabled]="!!demoBusy()">
+              <i class="fa-solid" [class.fa-wand-magic-sparkles]="demoBusy() !== 'create'" [class.fa-circle-notch]="demoBusy() === 'create'" [class.fa-spin]="demoBusy() === 'create'"></i>
+              Create test data
+            </button>
+          </div>
+        </div>
+        @if (demoMessage(); as m) {
+          <p class="mt-4 whitespace-pre-wrap rounded-xl bg-brand-ivory p-4 text-sm text-stone-600">{{ m }}</p>
+        }
+      </div>
+    }
+
+    <div class="card card-body xl:col-span-3">
+      <h3 class="card-title mb-4">Permissions ({{ u.permissions.length }})</h3>
+      <div class="flex flex-wrap gap-2">
+        @for (p of u.permissions; track p) {
+          <span class="chip bg-brand-ivory font-mono text-[11px] text-stone-600">{{ p }}</span>
+        }
+      </div>
+    </div>
+  </div>
+}

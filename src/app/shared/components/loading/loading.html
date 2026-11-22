@@ -1,0 +1,12 @@
+<div class="flex flex-col items-center justify-center gap-3 text-center" [class.py-16]="!compact()" [class.py-6]="compact()">
+  <img
+    src="images/brand/axxodia-mark.png"
+    alt="Axxodia"
+    class="w-auto animate-pulse"
+    [class.h-12]="!compact()"
+    [class.h-8]="compact()"
+  />
+  @if (message()) {
+    <p class="text-xs font-semibold uppercase tracking-[0.3em] text-brand-taupe">{{ message() }}</p>
+  }
+</div>

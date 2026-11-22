@@ -1,0 +1,19 @@
+<div class="min-h-screen bg-brand-ivory">
+  <app-sidebar />
+
+  <div class="flex min-h-screen flex-col lg:ml-64">
+    <app-navbar />
+
+    <main class="flex-1 p-4 md:p-8">
+      <router-outlet />
+    </main>
+
+    <footer class="flex items-center justify-center gap-2 border-t border-brand-beige px-6 py-4 text-xs text-stone-400">
+      <img src="images/brand/axxodia-mark.png" alt="" class="h-4 w-auto" />
+      <span>© {{ year }} Axxodia · Management Portal</span>
+    </footer>
+  </div>
+</div>
+
+<app-toast-container />
+<app-confirm-dialog />

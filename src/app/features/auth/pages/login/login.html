@@ -1,0 +1,64 @@
+<div class="card p-7 md:p-8">
+  <div class="mb-6 text-center">
+    <h1 class="font-heading text-3xl font-bold text-brand-brown">Sign in</h1>
+    <p class="mt-1 text-sm text-stone-400">Welcome to the Axxodia management portal</p>
+  </div>
+
+  @if (error(); as e) {
+    <div class="mb-5 flex items-start gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 text-sm text-danger">
+      <i class="fa-solid fa-circle-exclamation mt-0.5"></i>
+      <span>{{ e }}</span>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5" novalidate>
+    <div>
+      <label class="label" for="email">Email</label>
+      <div class="relative">
+        <i class="fa-regular fa-envelope pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"></i>
+        <input id="email" type="email" class="input pl-10" formControlName="email" placeholder="admin@axxodia.com" autocomplete="username" />
+      </div>
+      @if (form.controls.email.touched && form.controls.email.invalid) {
+        <p class="field-error">Enter a valid email address.</p>
+      }
+    </div>
+
+    <div>
+      <label class="label" for="password">Password</label>
+      <div class="relative">
+        <i class="fa-solid fa-lock pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-stone-400"></i>
+        <input
+          id="password"
+          [type]="showPassword() ? 'text' : 'password'"
+          class="input pl-10 pr-11"
+          formControlName="password"
+          placeholder="••••••••••"
+          autocomplete="current-password"
+        />
+        <button
+          type="button"
+          class="absolute right-2 top-1/2 -translate-y-1/2 px-2 text-stone-400 hover:text-brand-brown"
+          (click)="showPassword.set(!showPassword())"
+          [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+        >
+          <i class="fa-regular" [class.fa-eye]="!showPassword()" [class.fa-eye-slash]="showPassword()"></i>
+        </button>
+      </div>
+      @if (form.controls.password.touched && form.controls.password.invalid) {
+        <p class="field-error">Enter your password.</p>
+      }
+    </div>
+
+    <button type="submit" class="btn btn-primary w-full py-3" [disabled]="loading()">
+      @if (loading()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i> Signing in...
+      } @else {
+        Sign in <i class="fa-solid fa-arrow-right"></i>
+      }
+    </button>
+  </form>
+
+  <p class="mt-6 text-center text-xs text-stone-400">
+    Forgot your password? Ask the super admin to reset it from the Staff page.
+  </p>
+</div>

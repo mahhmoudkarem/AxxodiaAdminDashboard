@@ -1,0 +1,68 @@
+<app-page-header title="Stays" subtitle="Guests in house — check-in and check-out follow the reservation dates" icon="fa-bed">
+  <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()"><i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i> Refresh</button>
+</app-page-header>
+
+<div class="mb-4 flex flex-wrap gap-1 rounded-2xl bg-brand-beige/60 p-1">
+  <button type="button" class="tab" [class.tab-active]="status() === ''" (click)="setStatus('')">All <span class="ml-1 text-xs opacity-60">{{ counts()['all'] }}</span></button>
+  @for (s of statuses; track s) {
+    <button type="button" class="tab" [class.tab-active]="status() === s" (click)="setStatus(s)">
+      {{ s === 'CheckedIn' ? 'Checked in' : s === 'CheckedOut' ? 'Checked out' : s }}
+      <span class="ml-1 text-xs opacity-60">{{ counts()[s] ?? 0 }}</span>
+    </button>
+  }
+</div>
+
+<app-data-table [loading]="loading()" [empty]="!filtered().length" emptyTitle="No stays" [page]="page()" [pageSize]="pageSize" [total]="filtered().length" (pageChange)="page.set($event)">
+  <div toolbar class="border-b border-brand-beige p-4">
+    <div class="md:w-96"><app-search-input placeholder="Reference, guest, phone, room..." (search)="setSearch($event)" /></div>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>Guest</th><th>Room</th><th>Reservation</th><th>Check-in</th><th>Check-out</th><th>Status</th><th class="text-right">Actions</th></tr>
+    </thead>
+    <tbody>
+      @for (s of paged(); track s.id) {
+        <tr>
+          <td><p class="font-semibold">{{ s.guest_name }}</p><p class="muted" dir="ltr">{{ s.guest_phone }}</p></td>
+          <td>{{ s.room_number }}</td>
+          <td><a [routerLink]="['/reservations', s.reservation_id]" class="text-brand-brown hover:underline">{{ s.reference_no }}</a></td>
+          <td>{{ s.check_in | date: 'd MMM y, HH:mm' }}</td>
+          <td>{{ s.check_out | date: 'd MMM y, HH:mm' }}</td>
+          <td><app-status-badge [status]="s.status" /></td>
+          <td class="whitespace-nowrap text-right">
+            <button type="button" class="icon-btn" title="Details" (click)="open(s)"><i class="fa-solid fa-eye"></i></button>
+            @if (s.status === 'CheckedIn' && auth.hasPermission(P.stays.edit)) {
+              <button type="button" class="icon-btn hover:!text-danger" title="Cancel stay" (click)="cancel(s)"><i class="fa-solid fa-ban"></i></button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>
+
+<app-modal [open]="!!selected()" [title]="'Stay · ' + (selected()?.guest_name ?? '')" [subtitle]="selected()?.reference_no ?? ''" (close)="selected.set(null)">
+  @if (selected(); as s) {
+    <dl class="grid grid-cols-2 gap-4 text-sm">
+      <div><dt class="label">Status</dt><dd><app-status-badge [status]="s.status" /></dd></div>
+      <div><dt class="label">Room</dt><dd class="font-semibold">{{ s.room_number }}</dd></div>
+      <div><dt class="label">Phone</dt><dd dir="ltr">{{ s.guest_phone }}</dd></div>
+      <div><dt class="label">Reservation</dt><dd><a [routerLink]="['/reservations', s.reservation_id]" (click)="selected.set(null)" class="text-brand-brown underline">{{ s.reference_no }}</a></dd></div>
+      <div><dt class="label">Planned check-in</dt><dd>{{ s.check_in | date: 'medium' }}</dd></div>
+      <div><dt class="label">Planned check-out</dt><dd>{{ s.check_out | date: 'medium' }}</dd></div>
+      <div><dt class="label">Checked in at</dt><dd>{{ s.checked_in_at | date: 'medium' }}</dd></div>
+      <div><dt class="label">Checked out at</dt><dd>{{ (s.checked_out_at | date: 'medium') ?? '—' }}</dd></div>
+      @if (s.cancelled_at) {
+        <div><dt class="label">Cancelled at</dt><dd>{{ s.cancelled_at | date: 'medium' }}</dd></div>
+        <div><dt class="label">Cancelled by</dt><dd>{{ s.cancelled_by_staff_name ?? '—' }}</dd></div>
+        <div class="col-span-2"><dt class="label">Reason</dt><dd>{{ s.cancel_reason }}</dd></div>
+      }
+    </dl>
+  }
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    @if (selected()?.status === 'CheckedIn' && auth.hasPermission(P.stays.edit)) {
+      <button type="button" class="btn btn-danger" (click)="cancel(selected()!)"><i class="fa-solid fa-ban"></i> Cancel stay</button>
+    }
+    <button type="button" class="btn btn-outline" (click)="selected.set(null)">Close</button>
+  </div>
+</app-modal>

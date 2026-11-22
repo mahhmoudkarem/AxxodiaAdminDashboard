@@ -1,0 +1,49 @@
+<div class="card">
+  <div class="flex items-center justify-between border-b border-brand-beige px-6 py-4">
+    <div>
+      <h3 class="card-title">Photos</h3>
+      <p class="muted">JPG, PNG or WEBP up to 5 MB. The cover photo is shown first in the guest app.</p>
+    </div>
+    @if (canEdit()) {
+      <label class="btn btn-outline btn-sm cursor-pointer">
+        <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+        <input type="file" accept="image/*" multiple class="hidden" (change)="onFiles($any($event.target))" />
+      </label>
+    }
+  </div>
+  <div class="p-5">
+    @if (loading()) {
+      <p class="py-6 text-center text-xs text-stone-400">Loading photos...</p>
+    } @else {
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        @for (img of images(); track img.id) {
+          <div class="group relative aspect-[4/3] overflow-hidden rounded-xl border border-brand-beige bg-brand-ivory">
+            <img [src]="(img.thumb_url || img.image_url) | fileUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
+            @if (img.is_cover) {
+              <span class="chip absolute left-2 top-2 bg-brand-gold text-white"><i class="fa-solid fa-star text-[10px]"></i>Cover</span>
+            }
+            @if (canEdit()) {
+              <div class="absolute inset-x-0 bottom-0 flex justify-end gap-1 bg-gradient-to-t from-black/60 to-transparent p-2 opacity-0 transition group-hover:opacity-100">
+                @if (!img.is_cover) {
+                  <button type="button" class="icon-btn h-8 w-8 bg-white/90" title="Set as cover" (click)="setCover(img)"><i class="fa-regular fa-star"></i></button>
+                }
+                <button type="button" class="icon-btn h-8 w-8 bg-white/90 !text-danger" title="Remove" (click)="remove(img)"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            }
+          </div>
+        }
+        @for (u of placeholders(); track $index) {
+          <div class="flex aspect-[4/3] items-center justify-center rounded-xl border border-dashed border-brand-taupe bg-brand-ivory">
+            <i class="fa-solid fa-circle-notch fa-spin text-brand-taupe"></i>
+          </div>
+        }
+      </div>
+      @if (!images().length && !uploading()) {
+        <div class="flex flex-col items-center py-6 text-center">
+          <img src="images/brand/axxodia-mark.png" alt="" class="mb-2 h-8 w-auto opacity-40" />
+          <p class="text-sm text-stone-400">No photos yet.</p>
+        </div>
+      }
+    }
+  </div>
+</div>

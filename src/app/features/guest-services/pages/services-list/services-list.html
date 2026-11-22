@@ -1,0 +1,127 @@
+<app-page-header title="Guest services" subtitle="Wi-Fi, airport transportation, internet and electricity recharge" icon="fa-concierge-bell">
+  <button type="button" class="btn btn-primary" (click)="open('new')"><i class="fa-solid fa-plus"></i> New service</button>
+</app-page-header>
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No services" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="border-b border-brand-beige p-4">
+    <select class="input md:w-64" [value]="typeFilter()" (change)="setType($any($event.target).value)" aria-label="Type">
+      <option value="">All types</option>
+      @for (t of types; track t) {
+        <option [value]="t">{{ t | humanize }}</option>
+      }
+    </select>
+  </div>
+  <table class="table">
+    <thead>
+      <tr><th>Service</th><th>Type</th><th>Payment</th><th>Extra fee</th><th>Status</th><th class="text-right">Actions</th></tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr>
+          <td>
+            <div class="flex items-center gap-3">
+              <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-ivory text-brand-brown"><i class="fa-solid {{ icons[row.type] }}"></i></span>
+              <div>
+                <p class="font-semibold">{{ row.name }}</p>
+                <p class="muted line-clamp-1 max-w-xs">{{ row.description }}</p>
+              </div>
+            </div>
+          </td>
+          <td>{{ row.type | humanize }}</td>
+          <td>{{ row.payment_policy | humanize }}</td>
+          <td>{{ row.additional_fee_percentage | number: '1.0-2' }}%</td>
+          <td>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" class="h-4 w-4 accent-brand-brown" [checked]="row.is_active" (change)="toggle(row)" />
+              <app-status-badge [status]="row.is_active" />
+            </label>
+          </td>
+          <td class="whitespace-nowrap text-right">
+            @if (row.type === 'InternetRecharge') {
+              <button type="button" class="btn btn-sm btn-outline mr-1" (click)="openPackages(row)"><i class="fa-solid fa-box"></i> Packages</button>
+            }
+            <button type="button" class="icon-btn" title="Edit" (click)="open(row)"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(row)"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>
+
+<!-- Service form -->
+<app-modal [open]="!!editing()" [title]="editing() === 'new' ? 'New service' : 'Edit service'" (close)="editing.set(null)">
+  <form [formGroup]="form" (ngSubmit)="save()" id="service-form" class="space-y-4">
+    <div>
+      <label class="label">Type *</label>
+      <select class="input" formControlName="type">
+        @for (t of types; track t) {
+          <option [value]="t">{{ t | humanize }}</option>
+        }
+      </select>
+      <p class="muted mt-1">The payment policy is decided by the type (free / cash / customer choice).</p>
+    </div>
+    <div>
+      <label class="label">Name *</label>
+      <input class="input" formControlName="name" />
+    </div>
+    <div>
+      <label class="label">Description</label>
+      <textarea class="input min-h-24" formControlName="description"></textarea>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="label">Additional fee %</label>
+        <input type="number" class="input" formControlName="additional_fee_percentage" min="0" max="100" step="0.01" />
+      </div>
+      <label class="mt-6 flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+        <span class="text-sm font-semibold text-stone-600">Active</span>
+        <input type="checkbox" class="h-5 w-5 accent-brand-brown" formControlName="is_active" />
+      </label>
+    </div>
+  </form>
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    <button type="button" class="btn btn-outline" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="service-form" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</app-modal>
+
+<!-- Packages -->
+<app-modal [open]="!!packagesOf()" [title]="'Internet packages'" [subtitle]="packagesOf()?.name ?? ''" size="lg" (close)="packagesOf.set(null)">
+  @if (packageEditing()) {
+    <form [formGroup]="packageForm" (ngSubmit)="savePackage()" class="mb-5 grid gap-3 rounded-2xl bg-brand-ivory p-4 md:grid-cols-[1fr_160px_auto_auto] md:items-end">
+      <div><label class="label">Package name *</label><input class="input" formControlName="name" placeholder="10 GB" /></div>
+      <div><label class="label">Recharge value *</label><input type="number" class="input" formControlName="recharge_value" min="0.01" step="0.01" /></div>
+      <label class="flex items-center gap-2 pb-3 text-sm"><input type="checkbox" class="accent-brand-brown" formControlName="is_active" /> Active</label>
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-outline" (click)="packageEditing.set(null)">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  } @else {
+    <button type="button" class="btn btn-outline mb-4" (click)="editPackage('new')"><i class="fa-solid fa-plus"></i> Add package</button>
+  }
+  <table class="table !min-w-0">
+    <thead><tr><th>Name</th><th>Value</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+    <tbody>
+      @for (p of packages(); track p.id) {
+        <tr>
+          <td class="font-semibold">{{ p.name }}</td>
+          <td>{{ p.recharge_value | number: '1.0-2' }}</td>
+          <td>
+            <label class="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" class="h-4 w-4 accent-brand-brown" [checked]="p.is_active" (change)="togglePackage(p)" />
+              <app-status-badge [status]="p.is_active" />
+            </label>
+          </td>
+          <td class="text-right">
+            <button type="button" class="icon-btn" (click)="editPackage(p)"><i class="fa-solid fa-pen"></i></button>
+            <button type="button" class="icon-btn hover:!text-danger" (click)="removePackage(p)"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      } @empty {
+        <tr><td colspan="4" class="py-8 text-center text-stone-400">No packages yet.</td></tr>
+      }
+    </tbody>
+  </table>
+</app-modal>

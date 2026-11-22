@@ -1,0 +1,13 @@
+<div class="card overflow-hidden">
+  <ng-content select="[toolbar]" />
+  @if (loading()) {
+    <app-loading />
+  } @else if (empty()) {
+    <app-empty-state [title]="emptyTitle()" [message]="emptyMessage()" />
+  } @else {
+    <div class="table-wrap"><ng-content /></div>
+    @if (page() !== null) {
+      <app-pagination [page]="page()!" [pageSize]="pageSize()" [total]="total()" (pageChange)="pageChange.emit($event)" />
+    }
+  }
+</div>

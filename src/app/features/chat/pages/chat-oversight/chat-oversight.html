@@ -1,0 +1,128 @@
+<app-page-header title="Chat oversight" subtitle="Read-only monitoring of every guest conversation" icon="fa-comments">
+  @if (breached()) {
+    <span class="chip bg-danger/12 text-danger"><i class="fa-solid fa-stopwatch"></i> {{ breached() }} over SLA</span>
+  }
+  <button type="button" class="btn btn-outline" (click)="load()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+</app-page-header>
+
+<div class="grid gap-5 xl:grid-cols-[380px_1fr]">
+  <!-- Conversation list -->
+  <div class="card flex h-[calc(100vh-15rem)] min-h-[480px] flex-col overflow-hidden">
+    <div class="space-y-3 border-b border-brand-beige p-4">
+      <div class="flex gap-1 rounded-xl bg-brand-ivory p-1">
+        @for (t of ['open', 'closed', 'all']; track t) {
+          <button type="button" class="tab flex-1 capitalize" [class.tab-active]="tab() === t" (click)="setTab($any(t))">{{ t }}</button>
+        }
+      </div>
+      <app-search-input placeholder="Guest name or room..." (search)="search($event)" />
+    </div>
+
+    <div class="flex-1 overflow-y-auto">
+      @if (loading()) {
+        <app-loading compact />
+      } @else {
+        @for (c of conversations(); track c.id) {
+          <button
+            type="button"
+            class="flex w-full gap-3 border-b border-brand-beige/70 px-4 py-3 text-left transition hover:bg-brand-ivory"
+            [class.bg-brand-ivory]="selectedId() === c.id"
+            (click)="open(c)"
+          >
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-beige text-sm font-bold text-brand-brown">
+              {{ c.customer.display_name.charAt(0) }}
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-2">
+                <p class="truncate text-sm font-semibold text-brand-dark">{{ c.customer.display_name }}</p>
+                <span class="shrink-0 text-[11px] text-stone-400">{{ c.last_message_at | date: 'd MMM, HH:mm' }}</span>
+              </div>
+              <p class="truncate text-xs text-stone-500">{{ c.last_message_preview || '—' }}</p>
+              <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                <app-status-badge [status]="c.status" />
+                @if (c.customer.room_number) {
+                  <span class="chip bg-brand-ivory text-stone-500">Room {{ c.customer.room_number }}</span>
+                }
+                @if (c.sla_breached) {
+                  <span class="chip bg-danger/12 text-danger">SLA {{ waitingMinutes(c) }}m</span>
+                }
+                @if (c.unread_for_staff) {
+                  <span class="chip bg-brand-gold text-white">{{ c.unread_for_staff }}</span>
+                }
+              </div>
+            </div>
+          </button>
+        } @empty {
+          <app-empty-state title="No conversations" icon="fa-comments" />
+        }
+      }
+    </div>
+    <app-pagination [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)" />
+  </div>
+
+  <!-- Messages -->
+  <div class="card flex h-[calc(100vh-15rem)] min-h-[480px] flex-col overflow-hidden">
+    @if (!selectedId()) {
+      <div class="flex flex-1 flex-col items-center justify-center p-8 text-center">
+        <img src="images/brand/axxodia-logo.png" alt="Axxodia" class="mb-4 h-24 w-auto opacity-60" />
+        <p class="font-heading text-2xl font-bold text-brand-brown">Select a conversation</p>
+        <p class="mt-1 text-sm text-stone-400">You can read every chat here. Replies are sent from the customer service app.</p>
+      </div>
+    } @else {
+      <div class="flex items-center justify-between gap-3 border-b border-brand-beige px-5 py-4">
+        @if (selected(); as s) {
+          <div>
+            <p class="font-heading text-2xl font-bold text-brand-brown">{{ s.customer.display_name }}</p>
+            <p class="text-xs text-stone-400">
+              {{ s.customer.room_number ? 'Room ' + s.customer.room_number + ' · ' : '' }}Language: {{ s.customer.language | uppercase }} ·
+              {{ s.assigned_staff_name ? 'Handled by ' + s.assigned_staff_name : 'Not assigned' }}
+            </p>
+          </div>
+          <app-status-badge [status]="s.status" />
+        } @else {
+          <p class="muted">Loading...</p>
+        }
+      </div>
+
+      <div #scroller class="flex-1 space-y-3 overflow-y-auto bg-brand-ivory/50 px-5 py-4">
+        @if (messagesLoading()) {
+          <app-loading compact />
+        } @else {
+          @if (hasOlder() && messages().length) {
+            <div class="text-center">
+              <button type="button" class="btn btn-sm btn-outline" (click)="loadOlder()" [disabled]="loadingOlder()">
+                <i class="fa-solid fa-clock-rotate-left"></i> Older messages
+              </button>
+            </div>
+          }
+          @for (m of messages(); track m.id) {
+            @if (m.sender_type === 'System') {
+              <p class="text-center text-[11px] text-stone-400">{{ m.body }} · {{ m.sent_at | date: 'short' }}</p>
+            } @else {
+              <div class="flex" [class.justify-end]="m.sender_type === 'Staff'">
+                <div
+                  class="max-w-[75%] rounded-2xl px-4 py-2.5 text-sm shadow-sm"
+                  [class]="m.is_internal_note ? 'border border-dashed border-warning bg-warning/10 text-brand-dark' : m.sender_type === 'Staff' ? 'rounded-br-md bg-brand-brown text-white' : 'rounded-bl-md bg-white text-brand-dark'"
+                >
+                  @if (m.is_internal_note) {
+                    <p class="mb-1 text-[10px] font-bold uppercase tracking-wider text-warning">Internal note</p>
+                  }
+                  <p class="whitespace-pre-wrap break-words">{{ m.body }}</p>
+                  <p class="mt-1 text-right text-[10px] opacity-60">{{ m.sent_at | date: 'd MMM, HH:mm' }} · {{ m.status }}</p>
+                </div>
+              </div>
+            }
+          } @empty {
+            <p class="py-10 text-center text-sm text-stone-400">No messages.</p>
+          }
+        }
+      </div>
+
+      <div class="flex items-center gap-2 border-t border-brand-beige bg-white px-5 py-3 text-xs text-stone-400">
+        <i class="fa-solid fa-eye"></i> Read-only oversight · new messages appear automatically
+        @if (selected()?.closed_at) {
+          <span class="ml-auto">Closed {{ selected()!.closed_at | date: 'medium' }}{{ selected()!.closed_note ? ' — ' + selected()!.closed_note : '' }}</span>
+        }
+      </div>
+    }
+  </div>
+</div>

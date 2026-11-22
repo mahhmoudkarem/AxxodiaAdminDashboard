@@ -1,0 +1,100 @@
+<app-page-header
+  [title]="isNew() ? 'New room' : 'Room ' + (details()?.room_number ?? '')"
+  subtitle="Room number, floor, status and Wi-Fi"
+  icon="fa-door-open"
+  backLink="/catalog/rooms"
+>
+  @if (canSave()) {
+    <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">
+      <i class="fa-solid" [class.fa-floppy-disk]="!saving()" [class.fa-circle-notch]="saving()" [class.fa-spin]="saving()"></i> Save
+    </button>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading />
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-6 xl:grid-cols-3">
+    <div class="space-y-6 xl:col-span-2">
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Room</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="label">Location *</label>
+            <select class="input" formControlName="location_id">
+              <option [ngValue]="null">Select a location</option>
+              @for (l of locations(); track l.id) {
+                <option [ngValue]="l.id">{{ l.name_en }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Unit type *</label>
+            <select class="input" formControlName="unit_type_id">
+              <option [ngValue]="null">{{ selectedLocation() ? 'Select a unit type' : 'Select a location first' }}</option>
+              @for (u of locationUnitTypes(); track u.id) {
+                <option [ngValue]="u.id">{{ u.name_en }} · {{ u.bedrooms }} BR · {{ u.max_guests }} guests</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Room number *</label>
+            <input class="input" formControlName="room_number" placeholder="A-101" />
+          </div>
+          <div>
+            <label class="label">Floor</label>
+            <input class="input" formControlName="floor" placeholder="1" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="label">Notes</label>
+            <textarea class="input min-h-24" formControlName="notes"></textarea>
+          </div>
+        </div>
+      </div>
+
+      @if (!isNew()) {
+        <app-image-manager entityType="Room" [entityId]="roomId()!" [canEdit]="auth.hasPermission('rooms.edit')" />
+      }
+    </div>
+
+    <div class="space-y-6">
+      @if (!isNew()) {
+        <div class="card card-body">
+          <h3 class="card-title mb-4">Status</h3>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-brand-beige px-3 py-3 text-sm has-[:checked]:border-success has-[:checked]:bg-success/10">
+              <input type="radio" formControlName="status" value="Available" class="accent-success" /> Available
+            </label>
+            <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-brand-beige px-3 py-3 text-sm has-[:checked]:border-danger has-[:checked]:bg-danger/10">
+              <input type="radio" formControlName="status" value="OutOfService" class="accent-danger" /> Out of service
+            </label>
+          </div>
+        </div>
+      }
+
+      <div class="card card-body space-y-4">
+        <div>
+          <h3 class="card-title">Wi-Fi</h3>
+          @if (!canEditWifi()) {
+            <p class="muted">You need the rooms.wifi.edit permission to change Wi-Fi details.</p>
+          }
+        </div>
+        <div>
+          <label class="label">Network name</label>
+          <input class="input" formControlName="wifi_name" autocomplete="off" />
+        </div>
+        <div>
+          <label class="label">Password</label>
+          <input type="password" class="input" formControlName="wifi_password" autocomplete="new-password"
+                 [placeholder]="details()?.has_wifi_password ? '•••••••• (leave empty to keep)' : ''" />
+        </div>
+        @if (details()?.has_wifi_password && canEditWifi()) {
+          <label class="flex items-center gap-2 text-sm text-stone-500">
+            <input type="checkbox" class="accent-danger" formControlName="clear_wifi_password" /> Remove the saved password
+          </label>
+        }
+        <p class="muted"><i class="fa-solid fa-lock"></i> The password is stored encrypted on the server.</p>
+      </div>
+    </div>
+  </form>
+}

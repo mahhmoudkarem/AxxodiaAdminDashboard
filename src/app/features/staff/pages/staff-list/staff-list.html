@@ -1,0 +1,148 @@
+<app-page-header title="Staff" subtitle="Customer service, housekeeping, maintenance and admins — who works where and who is online" icon="fa-id-badge">
+  @if (canManage()) {
+    <button type="button" class="btn btn-primary" (click)="open('new')"><i class="fa-solid fa-user-plus"></i> New employee</button>
+  }
+</app-page-header>
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No employees" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 md:grid-cols-2 xl:grid-cols-5">
+    <app-search-input placeholder="Name or email..." (search)="set('search', $event)" />
+    <select class="input" (change)="set('role', $any($event.target).value)" aria-label="Role">
+      <option value="">All roles</option>
+      @for (r of roles(); track r.role) {
+        <option [value]="r.role">{{ roleLabel(r.role) }}</option>
+      }
+    </select>
+    <select class="input" (change)="set('location_id', $any($event.target).value)" aria-label="Location">
+      <option value="">All locations</option>
+      @for (l of locations(); track l.id) {
+        <option [value]="l.id">{{ l.name_en }}</option>
+      }
+    </select>
+    <select class="input" (change)="set('is_active', $any($event.target).value)" aria-label="Status">
+      <option value="">Active & disabled</option>
+      <option value="true">Active</option>
+      <option value="false">Disabled</option>
+    </select>
+    <label class="flex items-center gap-2 rounded-xl border border-brand-beige bg-white px-3 py-2.5 text-sm text-stone-600">
+      <input type="checkbox" class="accent-success" (change)="set('working', $any($event.target).checked)" /> Working now
+    </label>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr><th>Employee</th><th>Role</th><th>Location</th><th>Presence</th><th>Open tasks</th><th>Last sign-in</th><th>Status</th><th class="text-right">Actions</th></tr>
+    </thead>
+    <tbody>
+      @for (s of rows(); track s.id) {
+        <tr>
+          <td>
+            <div class="flex items-center gap-3">
+              <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-beige text-xs font-bold text-brand-brown">{{ s.name.charAt(0) }}</div>
+              <div>
+                <p class="font-semibold">{{ s.name }}</p>
+                <p class="muted">{{ s.email }}</p>
+              </div>
+            </div>
+          </td>
+          <td>{{ s.role | humanize }}</td>
+          <td>{{ s.location_name_en ?? 'All locations' }}</td>
+          <td><app-status-badge [status]="s.presence" /></td>
+          <td>{{ s.open_tasks }}</td>
+          <td>{{ (s.last_login_at | date: 'd MMM, HH:mm') ?? 'Never' }}</td>
+          <td>
+            <app-status-badge [status]="s.is_active" [label]="s.is_active ? 'Active' : 'Disabled'" />
+            @if (s.must_change_password) {
+              <p class="muted mt-1">Must change password</p>
+            }
+          </td>
+          <td class="whitespace-nowrap text-right">
+            @if (canManage()) {
+              <button type="button" class="icon-btn" title="Edit" (click)="open(s)"><i class="fa-solid fa-pen"></i></button>
+              <button type="button" class="icon-btn" title="Reset password" (click)="openReset(s)"><i class="fa-solid fa-key"></i></button>
+              <button type="button" class="icon-btn" [title]="s.is_active ? 'Disable' : 'Enable'" (click)="toggleActive(s)">
+                <i class="fa-solid" [class.fa-user-slash]="s.is_active" [class.fa-user-check]="!s.is_active"></i>
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>
+
+<!-- Create / edit -->
+<app-modal [open]="!!editing()" [title]="editing() === 'new' ? 'New employee' : 'Edit employee'" subtitle="The email is the user name. Mobile roles sign in to the Axxodia app." (close)="editing.set(null)">
+  <form [formGroup]="form" (ngSubmit)="save()" id="staff-form" class="space-y-4">
+    <div class="grid gap-4 md:grid-cols-2">
+      <div>
+        <label class="label">Full name {{ editing() === 'new' ? '' : '*' }}</label>
+        <input class="input" formControlName="name" />
+      </div>
+      <div>
+        <label class="label">Email *</label>
+        <input type="email" class="input" formControlName="email" autocomplete="off" />
+      </div>
+      <div>
+        <label class="label">Role *</label>
+        <select class="input" formControlName="role">
+          <option value="">Select a role</option>
+          @for (r of roles(); track r.role) {
+            <option [value]="r.role">{{ roleLabel(r.role) }}</option>
+          }
+        </select>
+      </div>
+      <div>
+        <label class="label">Location {{ requiresLocation() ? '*' : '' }}</label>
+        <select class="input" formControlName="location_id">
+          <option [ngValue]="null">{{ requiresLocation() ? 'Select a location' : 'All locations' }}</option>
+          @for (l of locations(); track l.id) {
+            <option [ngValue]="l.id">{{ l.name_en }}</option>
+          }
+        </select>
+      </div>
+    </div>
+    @if (editing() === 'new') {
+      <div>
+        <label class="label">Password *</label>
+        <div class="flex gap-2">
+          <input class="input font-mono" formControlName="password" autocomplete="new-password" />
+          <button type="button" class="btn btn-outline" (click)="generatePassword('create')" title="Generate"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+        </div>
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <p class="field-error">10+ characters with upper case, lower case and a digit.</p>
+        }
+      </div>
+      <label class="flex items-center gap-2 text-sm text-stone-600">
+        <input type="checkbox" class="accent-brand-brown" formControlName="must_change_password" /> Ask the employee to change the password at the first sign-in
+      </label>
+    }
+  </form>
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    <button type="button" class="btn btn-outline" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="staff-form" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</app-modal>
+
+<!-- Reset password -->
+<app-modal [open]="!!resetFor()" title="Reset password" [subtitle]="resetFor()?.email ?? ''" size="sm" (close)="resetFor.set(null)">
+  <form [formGroup]="resetForm" (ngSubmit)="saveReset()" id="reset-form" class="space-y-4">
+    <div>
+      <label class="label">New password *</label>
+      <div class="flex gap-2">
+        <input class="input font-mono" formControlName="new_password" autocomplete="new-password" />
+        <button type="button" class="btn btn-outline" (click)="generatePassword('reset')" title="Generate"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+      </div>
+      @if (resetForm.controls.new_password.touched && resetForm.controls.new_password.invalid) {
+        <p class="field-error">10+ characters with upper case, lower case and a digit.</p>
+      }
+    </div>
+    <label class="flex items-center gap-2 text-sm text-stone-600">
+      <input type="checkbox" class="accent-brand-brown" formControlName="must_change_password" /> Must change it at the next sign-in
+    </label>
+  </form>
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    <button type="button" class="btn btn-outline" (click)="resetFor.set(null)">Cancel</button>
+    <button type="submit" form="reset-form" class="btn btn-primary">Reset</button>
+  </div>
+</app-modal>

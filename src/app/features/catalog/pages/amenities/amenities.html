@@ -1,0 +1,37 @@
+<app-page-header title="Amenities" subtitle="The fixed list of features you can pick for locations and unit types" icon="fa-spa" />
+
+<div class="mb-5 flex items-start gap-3 rounded-2xl border border-brand-beige bg-white p-4 text-sm text-stone-500">
+  <i class="fa-solid fa-circle-info mt-0.5 text-brand-taupe"></i>
+  <p>
+    This list is managed by the system (gym, sauna, pool...). To give a location or a unit type an amenity, open it and pick from
+    <b>Amenities</b> in its form. The mobile app shows its own icon for each amenity.
+  </p>
+</div>
+
+<div class="card">
+  <div class="border-b border-brand-beige p-4">
+    <input class="input md:w-80" placeholder="Filter..." [value]="filter()" (input)="filter.set($any($event.target).value)" />
+  </div>
+  @if (loading()) {
+    <app-loading />
+  } @else if (!visible().length) {
+    <app-empty-state title="No amenities" />
+  } @else {
+    <div class="grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      @for (a of visible(); track a.id) {
+        <div class="flex items-center gap-3 rounded-xl border border-brand-beige px-4 py-3" [class.opacity-50]="!a.is_active">
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-ivory text-brand-brown">
+            <i class="fa-solid {{ icon(a.code) }}"></i>
+          </span>
+          <div class="min-w-0">
+            <p class="truncate font-semibold text-brand-dark">{{ a.name_en }}</p>
+            <p class="truncate text-xs text-stone-400" dir="rtl">{{ a.name_ar }}</p>
+          </div>
+          @if (!a.is_active) {
+            <span class="chip ml-auto bg-brand-beige text-stone-500">Inactive</span>
+          }
+        </div>
+      }
+    </div>
+  }
+</div>

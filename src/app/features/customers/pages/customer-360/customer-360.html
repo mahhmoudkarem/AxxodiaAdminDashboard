@@ -1,0 +1,174 @@
+<app-page-header [title]="customer()?.full_name ?? 'Customer'" subtitle="Profile, activity and history" icon="fa-user" backLink="/customers">
+  @if (customer(); as c) {
+    @if (canEdit()) {
+      <button type="button" class="btn" [class]="c.status === 'Active' ? 'btn-outline !text-danger' : 'btn-success'" (click)="toggleBlock()">
+        <i class="fa-solid" [class.fa-ban]="c.status === 'Active'" [class.fa-unlock]="c.status !== 'Active'"></i>
+        {{ c.status === 'Active' ? 'Block' : 'Unblock' }}
+      </button>
+    }
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading />
+} @else if (customer(); as c) {
+  <div class="grid gap-6 xl:grid-cols-[340px_1fr]">
+    <!-- Profile -->
+    <div class="card h-fit overflow-hidden">
+      <div class="relative bg-brand-dark px-6 pb-14 pt-6">
+        <img src="images/brand/axxodia-mark.png" alt="" class="absolute right-4 top-4 h-6 w-auto opacity-70" />
+      </div>
+      <div class="-mt-10 px-6 pb-6">
+        <div class="flex h-20 w-20 items-center justify-center rounded-2xl border-4 border-white bg-brand-beige font-heading text-3xl font-bold text-brand-brown shadow">
+          {{ c.full_name.charAt(0) }}
+        </div>
+        <h2 class="mt-3 font-heading text-2xl font-bold text-brand-brown">{{ c.full_name }}</h2>
+        <div class="flex flex-wrap gap-1.5">
+          <app-status-badge [status]="c.status" [label]="c.status === 'Disabled' ? 'Blocked' : null" />
+          @if (c.checked_in_now) {
+            <span class="chip bg-success/12 text-success"><i class="fa-solid fa-bed"></i> In house</span>
+          }
+        </div>
+        <dl class="mt-5 space-y-3 text-sm">
+          <div class="flex gap-3">
+            <i class="fa-solid fa-phone mt-0.5 w-4 text-brand-taupe"></i>
+            <span dir="ltr">{{ c.phone }}</span>
+            @if (c.phone_verified) {
+              <i class="fa-solid fa-circle-check mt-0.5 text-success" title="Verified on WhatsApp"></i>
+            }
+          </div>
+          <div class="flex gap-3"><i class="fa-solid fa-envelope mt-0.5 w-4 text-brand-taupe"></i><span class="break-all">{{ c.email ?? '—' }}</span></div>
+          <div class="flex gap-3"><i class="fa-solid fa-flag mt-0.5 w-4 text-brand-taupe"></i><span>{{ c.country ?? '—' }}</span></div>
+          <div class="flex gap-3"><i class="fa-solid fa-location-dot mt-0.5 w-4 text-brand-taupe"></i><span>{{ c.address ?? '—' }}</span></div>
+          <div class="flex gap-3"><i class="fa-solid fa-language mt-0.5 w-4 text-brand-taupe"></i><span>{{ c.language === 'ar' ? 'Arabic' : 'English' }}</span></div>
+          <div class="flex gap-3"><i class="fa-solid fa-calendar mt-0.5 w-4 text-brand-taupe"></i><span>Joined {{ c.created_at | date: 'd MMM y' }}</span></div>
+          <div class="flex gap-3"><i class="fa-solid fa-clock mt-0.5 w-4 text-brand-taupe"></i><span>Last active {{ (c.last_active_at | date: 'd MMM y, HH:mm') ?? '—' }}</span></div>
+          @if (c.social_providers.length) {
+            <div class="flex gap-3"><i class="fa-solid fa-link mt-0.5 w-4 text-brand-taupe"></i><span>Linked: {{ c.social_providers.join(', ') }}</span></div>
+          }
+        </dl>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <!-- Counters -->
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 2xl:grid-cols-6">
+        @for (k of [
+          { l: 'Reservations', v: c.reservations, i: 'fa-calendar-check' },
+          { l: 'Conversations', v: c.conversations, i: 'fa-comments' },
+          { l: 'Open chats', v: c.open_conversations, i: 'fa-comment-dots' },
+          { l: 'Service requests', v: c.guest_service_requests, i: 'fa-bell-concierge' },
+          { l: 'Maintenance', v: c.maintenance_requests, i: 'fa-screwdriver-wrench' },
+          { l: 'Open tasks', v: c.open_tasks, i: 'fa-list-check' }
+        ]; track k.l) {
+          <div class="card px-4 py-3">
+            <p class="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-stone-400"><i class="fa-solid {{ k.i }} text-brand-taupe"></i>{{ k.l }}</p>
+            <p class="font-heading text-3xl font-bold text-brand-brown">{{ k.v }}</p>
+          </div>
+        }
+      </div>
+
+      <!-- Latest reservations -->
+      <div class="card overflow-hidden">
+        <div class="border-b border-brand-beige px-6 py-4"><h3 class="card-title">Latest reservations</h3></div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Reference</th><th>Location</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Status</th></tr></thead>
+            <tbody>
+              @for (r of c.recent_reservations; track r.id) {
+                <tr>
+                  <td><a [routerLink]="['/reservations', r.id]" class="font-semibold text-brand-brown hover:underline">{{ r.reference_no }}</a></td>
+                  <td>{{ r.location }}</td><td>{{ r.room_number }}</td>
+                  <td>{{ r.check_in | date: 'd MMM y' }}</td><td>{{ r.check_out | date: 'd MMM y' }}</td>
+                  <td><app-status-badge [status]="r.status" /></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="py-10 text-center text-stone-400">No reservations yet.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Full history (reports.view) -->
+      @if (history(); as d) {
+        <div class="card overflow-hidden">
+          <div class="flex flex-wrap gap-1 border-b border-brand-beige bg-brand-ivory/60 p-2">
+            @for (t of [
+              { k: 'stays', l: 'Stays', n: d.stays.length },
+              { k: 'services', l: 'Guest services', n: d.guest_services.length },
+              { k: 'payments', l: 'Payments', n: d.payments.length },
+              { k: 'offers', l: 'Offers', n: d.offers.length },
+              { k: 'housekeeping', l: 'Housekeeping', n: d.housekeeping.length }
+            ]; track t.k) {
+              <button type="button" class="tab" [class.tab-active]="tab() === t.k" (click)="tab.set($any(t.k))">{{ t.l }} <span class="text-xs opacity-60">{{ t.n }}</span></button>
+            }
+          </div>
+          <div class="table-wrap">
+            @switch (tab()) {
+              @case ('stays') {
+                <table class="table">
+                  <thead><tr><th>#</th><th>Reservation</th><th>Checked in</th><th>Checked out</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (s of d.stays; track s.id) {
+                      <tr><td>#{{ s.id }}</td><td><a [routerLink]="['/reservations', s.reservation_id]" class="text-brand-brown hover:underline">#{{ s.reservation_id }}</a></td>
+                        <td>{{ s.checked_in_at | date: 'd MMM y, HH:mm' }}</td><td>{{ (s.checked_out_at | date: 'd MMM y, HH:mm') ?? '—' }}</td>
+                        <td><app-status-badge [status]="s.status" /></td></tr>
+                    } @empty { <tr><td colspan="5" class="py-10 text-center text-stone-400">Nothing yet.</td></tr> }
+                  </tbody>
+                </table>
+              }
+              @case ('services') {
+                <table class="table">
+                  <thead><tr><th>#</th><th>Service</th><th>Total</th><th>Created</th><th>Completed</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (g of d.guest_services; track g.id) {
+                      <tr><td>#{{ g.id }}</td><td>{{ g.service_name }}</td><td>{{ g.total_amount | number: '1.2-2' }}</td>
+                        <td>{{ g.created_at | date: 'd MMM y' }}</td><td>{{ (g.completed_at | date: 'd MMM y') ?? '—' }}</td>
+                        <td><app-status-badge [status]="g.status" /></td></tr>
+                    } @empty { <tr><td colspan="6" class="py-10 text-center text-stone-400">Nothing yet.</td></tr> }
+                  </tbody>
+                </table>
+              }
+              @case ('payments') {
+                <table class="table">
+                  <thead><tr><th>#</th><th>Request</th><th>Amount</th><th>Paid</th><th>Refunded</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (p of d.payments; track p.id) {
+                      <tr><td>#{{ p.id }}</td><td>#{{ p.guest_service_request_id }}</td><td>{{ p.amount | number: '1.2-2' }}</td>
+                        <td>{{ (p.paid_at | date: 'd MMM y') ?? '—' }}</td><td>{{ (p.refunded_at | date: 'd MMM y') ?? '—' }}</td>
+                        <td><app-status-badge [status]="p.status" /></td></tr>
+                    } @empty { <tr><td colspan="6" class="py-10 text-center text-stone-400">Nothing yet.</td></tr> }
+                  </tbody>
+                </table>
+              }
+              @case ('offers') {
+                <table class="table">
+                  <thead><tr><th>Offer</th><th>From</th><th>To</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (o of d.offers; track o.offer_id) {
+                      <tr><td><a [routerLink]="['/offers', o.offer_id]" class="font-semibold text-brand-brown hover:underline">{{ o.title }}</a></td>
+                        <td>{{ o.start_date | date: 'd MMM y' }}</td><td>{{ o.end_date | date: 'd MMM y' }}</td>
+                        <td><app-status-badge [status]="o.is_active" /></td></tr>
+                    } @empty { <tr><td colspan="4" class="py-10 text-center text-stone-400">Nothing yet.</td></tr> }
+                  </tbody>
+                </table>
+              }
+              @case ('housekeeping') {
+                <table class="table">
+                  <thead><tr><th>#</th><th>Room</th><th>Started</th><th>Completed</th><th>Status</th></tr></thead>
+                  <tbody>
+                    @for (h of d.housekeeping; track h.id) {
+                      <tr><td>#{{ h.id }}</td><td>#{{ h.room_id }}</td><td>{{ (h.started_at | date: 'd MMM, HH:mm') ?? '—' }}</td>
+                        <td>{{ (h.completed_at | date: 'd MMM, HH:mm') ?? '—' }}</td><td><app-status-badge [status]="h.status" /></td></tr>
+                    } @empty { <tr><td colspan="5" class="py-10 text-center text-stone-400">Nothing yet.</td></tr> }
+                  </tbody>
+                </table>
+              }
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}

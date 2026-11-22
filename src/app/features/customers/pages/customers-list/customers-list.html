@@ -1,0 +1,78 @@
+<app-page-header title="Customers" subtitle="People who use the Axxodia app" icon="fa-users">
+  @if (canExport()) {
+    <button type="button" class="btn btn-primary" (click)="export('xlsx')" [disabled]="!!exporting()">
+      <i class="fa-solid" [class.fa-file-excel]="exporting() !== 'xlsx'" [class.fa-circle-notch]="exporting() === 'xlsx'" [class.fa-spin]="exporting() === 'xlsx'"></i> Export to Excel
+    </button>
+    <button type="button" class="btn btn-outline" (click)="export('csv')" [disabled]="!!exporting()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+  }
+</app-page-header>
+
+@if (summary(); as s) {
+  <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <app-stat-card label="Customers" [value]="s.customers" [hint]="s.active_customers + ' active · ' + s.disabled_customers + ' blocked'" icon="fa-users" />
+    <app-stat-card label="New in the last 7 days" [value]="s.new_customers_last7_days" icon="fa-user-plus" tone="gold" />
+    <app-stat-card label="Staying now" [value]="s.checked_in_now" icon="fa-bed" tone="success" />
+    <app-stat-card label="Staff working now" [value]="s.staff_working_now" [hint]="s.active_staff + ' active employees'" icon="fa-id-badge" tone="info" />
+  </div>
+}
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No customers" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="flex flex-col gap-3 border-b border-brand-beige p-4 md:flex-row md:items-center">
+    <div class="md:w-96"><app-search-input placeholder="Name, phone or e-mail..." (search)="setSearch($event)" /></div>
+    <div class="flex gap-1 rounded-xl bg-brand-ivory p-1">
+      @for (s of [{ v: '', t: 'All' }, { v: 'Active', t: 'Active' }, { v: 'Disabled', t: 'Blocked' }]; track s.v) {
+        <button type="button" class="tab" [class.tab-active]="status() === s.v" (click)="setStatus(s.v)">{{ s.t }}</button>
+      }
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr><th>Customer</th><th>Phone</th><th>Country</th><th>Reservations</th><th>Now</th><th>Last active</th><th>Status</th><th class="text-right">Actions</th></tr>
+    </thead>
+    <tbody>
+      @for (c of rows(); track c.id) {
+        <tr>
+          <td>
+            <a [routerLink]="['/customers', c.id]" class="flex items-center gap-3">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-beige text-xs font-bold text-brand-brown">{{ c.full_name.charAt(0) }}</span>
+              <span>
+                <span class="block font-semibold text-brand-brown hover:underline">{{ c.full_name }}</span>
+                <span class="muted block">{{ c.email ?? '' }}</span>
+              </span>
+            </a>
+          </td>
+          <td dir="ltr">{{ c.phone }}</td>
+          <td>{{ c.country ?? '—' }}</td>
+          <td>{{ c.reservations }}</td>
+          <td>
+            <div class="flex flex-wrap gap-1">
+              @if (c.checked_in_now) {
+                <span class="chip bg-success/12 text-success"><i class="fa-solid fa-bed"></i> In house</span>
+              }
+              @if (c.open_conversations) {
+                <span class="chip bg-info/12 text-info"><i class="fa-solid fa-comments"></i> {{ c.open_conversations }}</span>
+              }
+              @if (c.open_tasks) {
+                <span class="chip bg-warning/15 text-warning"><i class="fa-solid fa-list-check"></i> {{ c.open_tasks }}</span>
+              }
+              @if (!c.checked_in_now && !c.open_conversations && !c.open_tasks) {
+                <span class="muted">—</span>
+              }
+            </div>
+          </td>
+          <td>{{ (c.last_active_at | date: 'd MMM, HH:mm') ?? '—' }}</td>
+          <td><app-status-badge [status]="c.status" [label]="c.status === 'Disabled' ? 'Blocked' : null" /></td>
+          <td class="whitespace-nowrap text-right">
+            <a [routerLink]="['/customers', c.id]" class="icon-btn" title="Open"><i class="fa-solid fa-eye"></i></a>
+            @if (canEdit()) {
+              <button type="button" class="icon-btn" [title]="c.status === 'Active' ? 'Block' : 'Unblock'" (click)="toggleBlock(c)">
+                <i class="fa-solid" [class.fa-ban]="c.status === 'Active'" [class.fa-unlock]="c.status !== 'Active'"></i>
+              </button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>

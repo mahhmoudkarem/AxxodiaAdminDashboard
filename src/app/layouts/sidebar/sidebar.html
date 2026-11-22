@@ -1,0 +1,59 @@
+<!-- Mobile backdrop -->
+@if (layout.mobileMenuOpen()) {
+  <div class="fixed inset-0 z-40 bg-brand-dark/50 backdrop-blur-sm lg:hidden" (click)="layout.close()"></div>
+}
+
+<aside
+  class="fixed left-0 top-0 z-50 flex h-[100dvh] w-64 flex-col overflow-y-auto border-r border-brand-beige bg-white transition-transform duration-200 lg:translate-x-0"
+  [class.-translate-x-full]="!layout.mobileMenuOpen()"
+>
+  <!-- Brand -->
+  <div class="relative flex shrink-0 flex-col items-center justify-center border-b border-brand-beige px-6 py-4">
+    <a routerLink="/dashboard" (click)="layout.close()" aria-label="Axxodia dashboard">
+      <app-brand-logo variant="full" imgClass="h-14 w-auto" />
+    </a>
+    <p class="mt-1 text-[10px] font-bold uppercase tracking-[0.35em] text-brand-taupe">Management Portal</p>
+    <button type="button" class="icon-btn absolute right-2 top-2 lg:hidden" (click)="layout.close()" aria-label="Close menu">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+
+  <!-- Navigation -->
+  <nav class="flex-1 px-4 py-4">
+    @for (group of groups(); track group.title) {
+      <p class="mb-2 mt-4 px-3 text-[10px] font-bold uppercase tracking-[0.2em] text-stone-400 first:mt-0">{{ group.title }}</p>
+      <div class="space-y-1">
+        @for (item of group.items; track item.route) {
+          <a
+            [routerLink]="item.route"
+            routerLinkActive="!bg-brand-brown !text-white shadow-sm"
+            [routerLinkActiveOptions]="{ exact: !!item.exact }"
+            (click)="layout.close()"
+            class="flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-semibold text-stone-500 transition hover:bg-brand-ivory hover:text-brand-brown"
+          >
+            <i class="fa-solid {{ item.icon }} w-5 text-center"></i>
+            <span>{{ item.label }}</span>
+          </a>
+        }
+      </div>
+    }
+  </nav>
+
+  <!-- Footer -->
+  <div class="sticky bottom-0 shrink-0 border-t border-brand-beige bg-white p-4">
+    <div class="flex items-center gap-3 rounded-xl bg-brand-ivory p-3">
+      <a routerLink="/profile" (click)="layout.close()" class="flex min-w-0 flex-1 items-center gap-3">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-brown text-sm font-bold text-white">
+          {{ auth.initials() }}
+        </div>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-brand-dark">{{ auth.displayName() }}</p>
+          <p class="truncate text-xs text-stone-400">{{ auth.user()?.role | humanize }}</p>
+        </div>
+      </a>
+      <button type="button" class="icon-btn" (click)="logout()" title="Sign out" aria-label="Sign out">
+        <i class="fa-solid fa-arrow-right-from-bracket"></i>
+      </button>
+    </div>
+  </div>
+</aside>

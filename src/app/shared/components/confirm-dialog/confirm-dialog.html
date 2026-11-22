@@ -1,0 +1,46 @@
+@if (confirm.state(); as s) {
+  <div class="fixed inset-0 z-[60] flex items-center justify-center bg-brand-dark/50 p-4 backdrop-blur-sm" (click)="cancel()">
+    <div class="card w-full max-w-md p-6" (click)="$event.stopPropagation()" role="alertdialog" aria-modal="true">
+      <div class="flex items-start gap-4">
+        <div
+          class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+          [class]="s.danger ? 'bg-danger/12 text-danger' : 'bg-brand-brown/10 text-brand-brown'"
+        >
+          <i class="fa-solid" [class.fa-triangle-exclamation]="s.danger" [class.fa-circle-question]="!s.danger"></i>
+        </div>
+        <div class="flex-1">
+          <h3 class="font-heading text-2xl font-bold text-brand-brown">{{ s.title }}</h3>
+          @if (s.message) {
+            <p class="mt-1 text-sm text-stone-500">{{ s.message }}</p>
+          }
+        </div>
+      </div>
+
+      @if (s.reason) {
+        <div class="mt-5">
+          <label class="label" for="confirm-reason">{{ s.reason.label }}</label>
+          <textarea
+            id="confirm-reason"
+            class="input min-h-24"
+            [attr.maxlength]="s.reason.maxLength ?? 500"
+            [value]="reason()"
+            (input)="reason.set($any($event.target).value)"
+          ></textarea>
+        </div>
+      }
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button type="button" class="btn btn-outline" (click)="cancel()">{{ s.cancelText ?? 'Cancel' }}</button>
+        <button
+          type="button"
+          class="btn"
+          [class]="s.danger ? 'btn-danger' : 'btn-primary'"
+          [disabled]="!!s.reason && s.reason.required !== false && !reason().trim()"
+          (click)="submit()"
+        >
+          {{ s.confirmText ?? 'Confirm' }}
+        </button>
+      </div>
+    </div>
+  </div>
+}

@@ -1,0 +1,125 @@
+<app-page-header [title]="'Maintenance task #' + id()" [subtitle]="task() ? task()!.location_name_en + ' · Room ' + task()!.room_number : ''" icon="fa-screwdriver-wrench" backLink="/maintenance">
+  @if (task(); as t) {
+    <app-status-badge [status]="t.status" />
+    @if (canAct() && open()) {
+      <button type="button" class="btn btn-outline" (click)="openEdit()" [disabled]="busy()"><i class="fa-solid fa-pen"></i> Correct</button>
+      @if (t.status === 'Assigned' || t.status === 'New') {
+        <button type="button" class="btn btn-primary" (click)="start()" [disabled]="busy() || !t.assigned_staff_id"><i class="fa-solid fa-play"></i> Start</button>
+      }
+      @if (t.status === 'InProgress') {
+        <button type="button" class="btn btn-success" (click)="end()" [disabled]="busy()"><i class="fa-solid fa-flag-checkered"></i> End</button>
+      }
+    }
+    @if (canAct()) {
+      <button type="button" class="btn btn-outline !text-danger" (click)="remove()" [disabled]="busy()"><i class="fa-solid fa-trash"></i></button>
+    }
+  }
+</app-page-header>
+
+@if (loading() && !task()) {
+  <app-loading />
+} @else if (task(); as t) {
+  <div class="grid gap-6 xl:grid-cols-3">
+    <div class="space-y-6 xl:col-span-2">
+      <div class="card card-body">
+        <h3 class="card-title mb-3">Problem</h3>
+        <p class="whitespace-pre-wrap text-sm text-stone-600">{{ t.description }}</p>
+        @if (t.notes) {
+          <p class="mt-4 rounded-xl bg-brand-ivory p-3 text-sm"><b>Notes:</b> {{ t.notes }}</p>
+        }
+        @if (t.cancel_reason) {
+          <p class="mt-4 rounded-xl bg-danger/10 p-3 text-sm text-danger"><b>Cancelled:</b> {{ t.cancel_reason }}</p>
+        }
+      </div>
+
+      <div class="card card-body">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="card-title">Photos</h3>
+          <button type="button" class="btn btn-sm btn-ghost" (click)="load()"><i class="fa-solid fa-rotate"></i> Refresh links</button>
+        </div>
+        @for (group of [{ t: 'Before', list: before() }, { t: 'After', list: after() }]; track group.t) {
+          <p class="label">{{ group.t }}</p>
+          <div class="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+            @for (img of group.list; track img.id) {
+              <button type="button" class="aspect-square overflow-hidden rounded-xl border border-brand-beige bg-brand-ivory" (click)="preview.set(img.content_url ?? null)">
+                @if (img.thumbnail_url || img.content_url) {
+                  <img [src]="img.thumbnail_url || img.content_url" alt="" class="h-full w-full object-cover" loading="lazy" />
+                } @else {
+                  <span class="text-xs text-stone-400">{{ img.status }}</span>
+                }
+              </button>
+            } @empty {
+              <p class="muted col-span-4">No {{ group.t | lowercase }} photos.</p>
+            }
+          </div>
+        }
+        <p class="muted"><i class="fa-solid fa-circle-info"></i> Task photos are private and deleted automatically after 2 months.</p>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="card card-body text-sm">
+        <h3 class="card-title mb-4">Details</h3>
+        <dl class="space-y-2">
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Location</dt><dd class="text-right">{{ t.location_name_en }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Room</dt><dd>{{ t.room_number }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Employee</dt><dd class="text-right">{{ t.assigned_staff_name ?? 'Not assigned' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Assigned by</dt><dd class="text-right">{{ t.assigned_by_staff_name ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Created</dt><dd>{{ t.created_at | date: 'd MMM, HH:mm' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Started</dt><dd>{{ (t.started_at | date: 'd MMM, HH:mm') ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Ended</dt><dd>{{ (t.ended_at | date: 'd MMM, HH:mm') ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2"><dt class="text-stone-500">Completed</dt><dd>{{ (t.completed_at | date: 'd MMM, HH:mm') ?? '—' }}</dd></div>
+          <div class="flex justify-between gap-2 border-t border-brand-beige pt-2 font-bold"><dt>Duration</dt><dd>{{ duration(t.duration_seconds) }}</dd></div>
+        </dl>
+      </div>
+
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Timeline</h3>
+        <ol class="relative ml-2 space-y-4 border-l border-brand-beige pl-5">
+          @for (e of t.events; track e.id) {
+            <li class="relative">
+              <span class="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-brand-taupe"></span>
+              <p class="text-sm font-semibold">{{ e.type | humanize }}</p>
+              <p class="muted">{{ e.at | date: 'd MMM, HH:mm' }} · {{ e.by_staff_name ?? 'System' }}</p>
+              @if (e.from_status || e.to_status) {
+                <p class="text-xs text-stone-500">{{ e.from_status | humanize }} → {{ e.to_status | humanize }}</p>
+              }
+              @if (e.note) {
+                <p class="text-xs text-stone-500">{{ e.note }}</p>
+              }
+            </li>
+          } @empty {
+            <li class="muted">No events.</li>
+          }
+        </ol>
+      </div>
+    </div>
+  </div>
+}
+
+<app-modal [open]="editOpen()" title="Correct task" (close)="editOpen.set(false)">
+  <div class="space-y-4">
+    <div>
+      <label class="label">Room</label>
+      <select class="input" [(ngModel)]="editRoomId">
+        @for (r of rooms(); track r.id) {
+          <option [ngValue]="r.id">{{ r.room_number }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">Description</label>
+      <textarea class="input min-h-28" [(ngModel)]="editDescription" maxlength="1000"></textarea>
+    </div>
+  </div>
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    <button type="button" class="btn btn-outline" (click)="editOpen.set(false)">Cancel</button>
+    <button type="button" class="btn btn-primary" (click)="saveEdit()">Save</button>
+  </div>
+</app-modal>
+
+<app-modal [open]="!!preview()" title="Photo" size="xl" (close)="preview.set(null)">
+  @if (preview(); as p) {
+    <img [src]="p" alt="" class="mx-auto max-h-[70vh] rounded-xl" />
+  }
+</app-modal>

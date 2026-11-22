@@ -1,0 +1,130 @@
+<app-page-header
+  [title]="isNew() ? 'New location' : (details()?.name_en ?? 'Location')"
+  [subtitle]="isNew() ? 'Add a building / compound' : 'Edit the location details, amenities and photos'"
+  icon="fa-building"
+  backLink="/catalog/locations"
+>
+  @if (canSave()) {
+    <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">
+      @if (saving()) {
+        <i class="fa-solid fa-circle-notch fa-spin"></i>
+      } @else {
+        <i class="fa-solid fa-floppy-disk"></i>
+      }
+      Save
+    </button>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading />
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-6 xl:grid-cols-3">
+    <div class="space-y-6 xl:col-span-2">
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Basic information</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="label">Name (English) *</label>
+            <input class="input" formControlName="name_en" />
+          </div>
+          <div>
+            <label class="label">Name (Arabic) *</label>
+            <input class="input" formControlName="name_ar" dir="rtl" />
+          </div>
+          <div>
+            <label class="label">Area (English)</label>
+            <input class="input" formControlName="area_en" placeholder="New Cairo" />
+          </div>
+          <div>
+            <label class="label">Area (Arabic)</label>
+            <input class="input" formControlName="area_ar" dir="rtl" />
+          </div>
+          <div>
+            <label class="label">Address (English)</label>
+            <input class="input" formControlName="address_en" />
+          </div>
+          <div>
+            <label class="label">Address (Arabic)</label>
+            <input class="input" formControlName="address_ar" dir="rtl" />
+          </div>
+          <div>
+            <label class="label">Description (English)</label>
+            <textarea class="input min-h-28" formControlName="description_en"></textarea>
+          </div>
+          <div>
+            <label class="label">Description (Arabic)</label>
+            <textarea class="input min-h-28" formControlName="description_ar" dir="rtl"></textarea>
+          </div>
+          <div>
+            <label class="label">Stay instructions (English)</label>
+            <textarea class="input min-h-28" formControlName="stay_instructions_en" placeholder="Check-in steps, parking, house rules..."></textarea>
+          </div>
+          <div>
+            <label class="label">Stay instructions (Arabic)</label>
+            <textarea class="input min-h-28" formControlName="stay_instructions_ar" dir="rtl"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Amenities</h3>
+        <app-amenity-picker [amenities]="pickable()" [(selected)]="amenityIds" [disabled]="!canSave()" />
+      </div>
+
+      @if (!isNew()) {
+        <app-image-manager entityType="Location" [entityId]="locationId()!" [canEdit]="auth.hasPermission('locations.edit')" />
+      }
+    </div>
+
+    <div class="space-y-6">
+      <div class="card card-body space-y-4">
+        <h3 class="card-title">Settings</h3>
+        <label class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+          <span class="text-sm font-semibold text-stone-600">Active (visible to guests)</span>
+          <input type="checkbox" class="h-5 w-5 accent-brand-brown" formControlName="is_active" />
+        </label>
+        <div>
+          <label class="label">Sort order</label>
+          <input type="number" class="input" formControlName="sort_order" min="0" />
+        </div>
+        <div>
+          <label class="label">Phone</label>
+          <input class="input" formControlName="phone" placeholder="+20..." />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="label">Latitude</label>
+            <input type="number" step="any" class="input" formControlName="lat" />
+          </div>
+          <div>
+            <label class="label">Longitude</label>
+            <input type="number" step="any" class="input" formControlName="lng" />
+          </div>
+        </div>
+        @if (form.value.lat && form.value.lng) {
+          <a class="text-xs font-semibold text-brand-taupe hover:text-brand-brown" target="_blank" rel="noopener"
+             [href]="'https://www.google.com/maps?q=' + form.value.lat + ',' + form.value.lng">
+            <i class="fa-solid fa-map-location-dot"></i> Open in Google Maps
+          </a>
+        }
+      </div>
+
+      @if (!isNew()) {
+        <div class="card card-body">
+          <h3 class="card-title mb-1">Customer service</h3>
+          <p class="muted mb-4">The employee who answers the chats of this location.</p>
+          <select class="input" formControlName="customer_service_staff_id">
+            <option [ngValue]="null">— Not assigned —</option>
+            @for (s of csStaff(); track s.id) {
+              <option [ngValue]="s.id">{{ s.name }} · {{ s.email }}</option>
+            }
+          </select>
+          @if (!csStaff().length) {
+            <p class="muted mt-2">No active customer-service employee works at this location yet.</p>
+          }
+        </div>
+      }
+    </div>
+  </form>
+}

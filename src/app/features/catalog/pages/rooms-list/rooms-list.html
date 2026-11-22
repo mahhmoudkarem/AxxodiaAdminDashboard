@@ -1,0 +1,168 @@
+<app-page-header title="Rooms" subtitle="Every bookable unit with its Wi-Fi and status" icon="fa-door-open">
+  @if (auth.hasPermission(P.rooms.create)) {
+    <button type="button" class="btn btn-outline" (click)="openBulk()"><i class="fa-solid fa-layer-group"></i> Add many rooms</button>
+    <a routerLink="/catalog/rooms/new" [queryParams]="{ location: locationId(), unitType: unitTypeId() }" class="btn btn-primary">
+      <i class="fa-solid fa-plus"></i> New room
+    </a>
+  }
+</app-page-header>
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No rooms" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 md:grid-cols-4">
+    <app-search-input placeholder="Room number..." (search)="search($event)" />
+    <select class="input" (change)="setLocation($any($event.target).value)" aria-label="Location">
+      <option value="">All locations</option>
+      @for (l of locations(); track l.id) {
+        <option [value]="l.id" [selected]="l.id === locationId()">{{ l.name_en }}</option>
+      }
+    </select>
+    <select class="input" (change)="setUnitType($any($event.target).value)" aria-label="Unit type">
+      <option value="">All unit types</option>
+      @for (u of filteredUnitTypes(); track u.id) {
+        <option [value]="u.id" [selected]="u.id === unitTypeId()">{{ u.name_en }}</option>
+      }
+    </select>
+    <select class="input" [value]="status()" (change)="setStatus($any($event.target).value)" aria-label="Status">
+      <option value="">All statuses</option>
+      <option value="Available">Available</option>
+      <option value="OutOfService">Out of service</option>
+    </select>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Room</th>
+        <th>Floor</th>
+        <th>Location</th>
+        <th>Unit type</th>
+        <th>Wi-Fi</th>
+        <th>Status</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr>
+          <td><a [routerLink]="['/catalog/rooms', row.id]" class="font-semibold text-brand-brown hover:underline">{{ row.room_number }}</a></td>
+          <td>{{ row.floor || '—' }}</td>
+          <td>{{ locationName()(row.location_id) }}</td>
+          <td>{{ unitTypeName()(row.unit_type_id) }}</td>
+          <td>
+            @if (row.wifi_name) {
+              <span class="text-sm">{{ row.wifi_name }}</span>
+              @if (row.has_wifi_password && auth.hasPermission(P.rooms.wifiView)) {
+                <button type="button" class="ml-1 text-xs font-semibold text-brand-taupe hover:text-brand-brown" (click)="showWifi(row)">
+                  <i class="fa-solid fa-key"></i> Show
+                </button>
+              }
+            } @else {
+              <span class="muted">Not set</span>
+            }
+          </td>
+          <td><app-status-badge [status]="row.status" /></td>
+          <td class="text-right">
+            <a [routerLink]="['/catalog/rooms', row.id]" class="icon-btn" title="Open"><i class="fa-solid fa-pen"></i></a>
+            @if (auth.hasPermission(P.rooms.delete)) {
+              <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(row)"><i class="fa-solid fa-trash"></i></button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>
+
+<app-modal [open]="!!wifi()" [title]="'Wi-Fi · Room ' + (wifi()?.room ?? '')" size="sm" (close)="wifi.set(null)">
+  @if (wifi(); as w) {
+    <div class="space-y-3">
+      <div class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+        <div><p class="label !mb-0">Network</p><p class="font-semibold">{{ w.wifi_name || '—' }}</p></div>
+        <button type="button" class="icon-btn" (click)="copy(w.wifi_name)" title="Copy"><i class="fa-regular fa-copy"></i></button>
+      </div>
+      <div class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+        <div><p class="label !mb-0">Password</p><p class="font-mono font-semibold">{{ w.wifi_password || '—' }}</p></div>
+        <button type="button" class="icon-btn" (click)="copy(w.wifi_password)" title="Copy"><i class="fa-regular fa-copy"></i></button>
+      </div>
+    </div>
+  }
+</app-modal>
+
+<app-modal [open]="bulkOpen()" title="Add many rooms" subtitle="Creates rooms numbered From → To (up to 200 at once)" (close)="bulkOpen.set(false)">
+  @if (bulkResult(); as r) {
+    <div class="space-y-4 text-center">
+      <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-success/12 text-2xl text-success"><i class="fa-solid fa-check"></i></div>
+      <p class="font-heading text-2xl font-bold text-brand-brown">{{ r.created }} room(s) created</p>
+      @if (r.skipped.length) {
+        <div class="rounded-xl bg-warning/10 p-3 text-left text-sm text-warning">
+          <p class="font-semibold">Skipped (already exist): {{ r.skipped.length }}</p>
+          <p class="mt-1 break-words">{{ r.skipped.join(', ') }}</p>
+        </div>
+      }
+    </div>
+  } @else {
+    <form [formGroup]="bulkForm" (ngSubmit)="saveBulk()" id="bulk-rooms-form" class="space-y-4">
+      <div class="grid gap-4 md:grid-cols-2">
+        <div>
+          <label class="label">Location *</label>
+          <select class="input" formControlName="location_id">
+            <option [ngValue]="null">Select a location</option>
+            @for (l of locations(); track l.id) {
+              <option [ngValue]="l.id">{{ l.name_en }}</option>
+            }
+          </select>
+        </div>
+        <div>
+          <label class="label">Unit type *</label>
+          <select class="input" formControlName="unit_type_id">
+            <option [ngValue]="null">{{ bulkLocation() ? 'Select a unit type' : 'Select a location first' }}</option>
+            @for (u of bulkUnitTypes(); track u.id) {
+              <option [ngValue]="u.id">{{ u.name_en }}</option>
+            }
+          </select>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="label">Prefix</label>
+          <input class="input" formControlName="prefix" placeholder="A-" maxlength="5" />
+        </div>
+        <div>
+          <label class="label">From *</label>
+          <input type="number" class="input" formControlName="from" min="0" max="9999" />
+        </div>
+        <div>
+          <label class="label">To *</label>
+          <input type="number" class="input" formControlName="to" min="0" max="9999" />
+        </div>
+      </div>
+      <div>
+        <label class="label">Floor (optional, same for all)</label>
+        <input class="input" formControlName="floor" />
+      </div>
+      <div class="rounded-xl bg-brand-ivory px-4 py-3 text-sm" [class.text-danger]="bulkPreview().count > 200 || bulkPreview().count === 0">
+        @if (bulkPreview().count === 0) {
+          "To" must be greater than or equal to "From".
+        } @else if (bulkPreview().count > 200) {
+          {{ bulkPreview().count }} rooms — the limit is 200 at once.
+        } @else {
+          <b>{{ bulkPreview().count }}</b> room(s): {{ bulkPreview().sample }}. Numbers that already exist are skipped.
+        }
+      </div>
+    </form>
+  }
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    @if (bulkResult()) {
+      <button type="button" class="btn btn-outline" (click)="bulkResult.set(null)">Add more</button>
+      <button type="button" class="btn btn-primary" (click)="bulkOpen.set(false)">Done</button>
+    } @else {
+      <button type="button" class="btn btn-outline" (click)="bulkOpen.set(false)">Cancel</button>
+      <button type="submit" form="bulk-rooms-form" class="btn btn-primary" [disabled]="bulkSaving()">
+        @if (bulkSaving()) {
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+        }
+        Create rooms
+      </button>
+    }
+  </div>
+</app-modal>

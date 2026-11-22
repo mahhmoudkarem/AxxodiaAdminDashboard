@@ -1,0 +1,159 @@
+<!-- Hero -->
+<section class="relative mb-6 overflow-hidden rounded-3xl bg-brand-dark px-6 py-7 text-white md:px-10">
+  <div class="pointer-events-none absolute -right-10 -top-16 h-64 w-64 rounded-full bg-brand-gold/15 blur-3xl"></div>
+  <img src="images/brand/axxodia-mark.png" alt="" class="pointer-events-none absolute -bottom-6 right-6 hidden h-40 w-auto opacity-25 md:block" />
+  <div class="relative flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+    <div>
+      <p class="text-xs font-bold uppercase tracking-[0.3em] text-brand-taupe">Overview</p>
+      <h1 class="mt-1 font-heading text-4xl font-bold">Today at Axxodia</h1>
+      @if (summary(); as s) {
+        <p class="mt-1 text-sm text-brand-taupe">Updated {{ s.generated_at | date: 'medium' }}</p>
+      }
+    </div>
+    <div class="flex items-center gap-2">
+      @if (locations().length) {
+        <select
+          class="rounded-xl border border-white/20 bg-white/10 px-3.5 py-2.5 text-sm text-white outline-none"
+          [value]="locationId() ?? ''"
+          (change)="setLocation($any($event.target).value)"
+          aria-label="Location"
+        >
+          <option value="" class="text-brand-dark">All locations</option>
+          @for (l of locations(); track l.id) {
+            <option [value]="l.id" class="text-brand-dark">{{ l.name_en }}</option>
+          }
+        </select>
+      }
+      <button type="button" class="btn border border-white/20 bg-white/10 text-white hover:bg-white/20" (click)="load()" [disabled]="loading()">
+        <i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i>
+        <span class="hidden sm:inline">Refresh</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+@if (loading() && !summary()) {
+  <app-loading message="Loading dashboard" />
+} @else if (summary(); as s) {
+  <!-- Stays -->
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <app-stat-card label="Guests checked in" [value]="s.stays.checked_in" icon="fa-bed" tone="brown" link="/stays" />
+    <app-stat-card label="Check-ins today" [value]="s.stays.check_ins_today" icon="fa-right-to-bracket" tone="success" link="/reservations" />
+    <app-stat-card label="Check-outs today" [value]="s.stays.check_outs_today" icon="fa-right-from-bracket" tone="warning" link="/stays" />
+    <app-stat-card label="Upcoming reservations" [value]="s.stays.upcoming_reservations" icon="fa-calendar-days" tone="gold" link="/reservations" />
+  </div>
+
+  <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <app-stat-card label="Staff working now" [value]="s.staff.working_now" [hint]="s.staff.active_staff + ' active employees'" icon="fa-user-clock" tone="info" link="/staff" />
+    <app-stat-card label="Unassigned chats" [value]="s.chat.unassigned" [hint]="s.chat.assigned + ' assigned'" icon="fa-comments" [tone]="s.chat.unassigned > 0 ? 'danger' : 'success'" link="/chat-oversight" />
+    <app-stat-card label="Active offers" [value]="s.active_offers" icon="fa-tags" tone="gold" link="/offers" />
+    <app-stat-card label="Open housekeeping" [value]="s.housekeeping.assigned + s.housekeeping.in_progress + s.housekeeping.waiting_for_customer_service" icon="fa-broom" tone="brown" link="/housekeeping" />
+  </div>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-3">
+    <!-- Tasks -->
+    <div class="card xl:col-span-2">
+      <div class="card-body">
+        <div class="mb-5 flex items-center justify-between">
+          <h3 class="card-title">Tasks pipeline</h3>
+          <div class="flex items-center gap-4 text-xs text-stone-500">
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-brand-brown"></span>Housekeeping</span>
+            <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm bg-brand-gold"></span>Maintenance</span>
+          </div>
+        </div>
+        <div class="space-y-4">
+          @for (r of taskRows(); track r.label) {
+            <div>
+              <div class="mb-1.5 flex justify-between text-sm">
+                <span class="font-semibold text-stone-600">{{ r.label }}</span>
+                <span class="text-stone-400">{{ r.hk }} · {{ r.mt }}</span>
+              </div>
+              <div class="space-y-1">
+                <div class="h-2 rounded-full bg-brand-ivory"><div class="h-2 rounded-full bg-brand-brown" [style.width.%]="pct(r.hk)"></div></div>
+                <div class="h-2 rounded-full bg-brand-ivory"><div class="h-2 rounded-full bg-brand-gold" [style.width.%]="pct(r.mt)"></div></div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Team -->
+    <div class="card">
+      <div class="card-body">
+        <h3 class="card-title mb-5">Team</h3>
+        <ul class="space-y-3">
+          <li class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+            <span class="flex items-center gap-3 text-sm font-semibold text-stone-600"><i class="fa-solid fa-headset w-4 text-brand-taupe"></i>Customer service</span>
+            <span class="font-heading text-2xl font-bold text-brand-brown">{{ s.staff.customer_service }}</span>
+          </li>
+          <li class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+            <span class="flex items-center gap-3 text-sm font-semibold text-stone-600"><i class="fa-solid fa-broom w-4 text-brand-taupe"></i>Housekeeping</span>
+            <span class="font-heading text-2xl font-bold text-brand-brown">{{ s.staff.housekeeping }}</span>
+          </li>
+          <li class="flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+            <span class="flex items-center gap-3 text-sm font-semibold text-stone-600"><i class="fa-solid fa-screwdriver-wrench w-4 text-brand-taupe"></i>Maintenance</span>
+            <span class="font-heading text-2xl font-bold text-brand-brown">{{ s.staff.maintenance }}</span>
+          </li>
+        </ul>
+        <a routerLink="/staff" class="btn btn-outline mt-5 w-full">Manage staff <i class="fa-solid fa-arrow-right"></i></a>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-6 grid gap-6 xl:grid-cols-3">
+    <!-- Upcoming reservations -->
+    <div class="card xl:col-span-2">
+      <div class="flex items-center justify-between border-b border-brand-beige px-6 py-4">
+        <h3 class="card-title">Arrivals & in-house</h3>
+        <a routerLink="/reservations" class="text-xs font-bold uppercase tracking-wider text-brand-taupe hover:text-brand-brown">View all</a>
+      </div>
+      @if (upcoming().length) {
+        <div class="table-wrap">
+          <table class="table">
+            <thead>
+              <tr><th>Reference</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              @for (r of upcoming(); track r.id) {
+                <tr>
+                  <td><a [routerLink]="['/reservations', r.id]" class="font-semibold text-brand-brown hover:underline">{{ r.reference_no }}</a></td>
+                  <td>{{ r.guest_name }}</td>
+                  <td>{{ r.room_number ?? '—' }}</td>
+                  <td>{{ r.check_in | date: 'd MMM, HH:mm' }}</td>
+                  <td>{{ r.check_out | date: 'd MMM, HH:mm' }}</td>
+                  <td><app-status-badge [status]="r.status" /></td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="px-6 py-10 text-center text-sm text-stone-400">No upcoming or active reservations.</p>
+      }
+    </div>
+
+    <!-- Offers -->
+    <div class="card">
+      <div class="flex items-center justify-between border-b border-brand-beige px-6 py-4">
+        <h3 class="card-title">Live offers</h3>
+        <a routerLink="/offers" class="text-xs font-bold uppercase tracking-wider text-brand-taupe hover:text-brand-brown">Manage</a>
+      </div>
+      <ul class="divide-y divide-brand-beige">
+        @for (o of offers(); track o.id) {
+          <li class="flex items-center gap-3 px-6 py-3">
+            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-gold/15 font-heading text-lg font-bold text-brand-gold">
+              {{ o.discount_percentage }}%
+            </div>
+            <div class="min-w-0">
+              <a [routerLink]="['/offers', o.id]" class="block truncate text-sm font-semibold text-brand-dark hover:text-brand-brown">{{ o.title }}</a>
+              <p class="text-xs text-stone-400">Until {{ o.end_date | date: 'd MMM y' }}</p>
+            </div>
+          </li>
+        } @empty {
+          <li class="px-6 py-10 text-center text-sm text-stone-400">No active offers.</li>
+        }
+      </ul>
+    </div>
+  </div>
+}

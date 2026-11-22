@@ -1,0 +1,152 @@
+/* Fonts are loaded from index.html (<link>) */
+@import "tailwindcss";
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+
+@theme {
+  /* Brand Colors */
+  --color-brand-ivory: #F7F4ED;
+  --color-brand-brown: #594638;
+  --color-brand-taupe: #B9A08B;
+  --color-brand-beige: #EAE5DA;
+  --color-brand-white: #FFFFFF;
+  --color-brand-dark: #302820;
+  --color-brand-gold: #C9A13B;
+
+  /* Status Colors */
+  --color-success: #5D8069;
+  --color-warning: #C18B45;
+  --color-danger: #B85C55;
+  --color-info: #5B7A99;
+
+  /* Fonts */
+  --font-heading: "Cormorant Garamond", serif;
+  --font-sans: "Lato", sans-serif;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background-color: var(--color-brand-ivory);
+    color: var(--color-brand-dark);
+    font-family: var(--font-sans);
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+}
+
+/* ============ Shared UI building blocks ============ */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-brand-beige bg-white shadow-sm;
+  }
+
+  .card-body {
+    @apply p-5 md:p-6;
+  }
+
+  .card-title {
+    @apply font-heading text-xl font-bold text-brand-brown;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50;
+  }
+
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  .btn-primary {
+    @apply bg-brand-brown text-white hover:bg-brand-dark;
+  }
+
+  .btn-outline {
+    @apply border border-brand-beige bg-white text-brand-brown hover:bg-brand-ivory;
+  }
+
+  .btn-ghost {
+    @apply text-stone-500 hover:bg-brand-ivory hover:text-brand-brown;
+  }
+
+  .btn-danger {
+    @apply bg-danger text-white hover:opacity-90;
+  }
+
+  .btn-success {
+    @apply bg-success text-white hover:opacity-90;
+  }
+
+  .icon-btn {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg text-stone-500 transition hover:bg-brand-ivory hover:text-brand-brown disabled:opacity-40;
+  }
+
+  .label {
+    @apply mb-1.5 block text-xs font-bold uppercase tracking-wider text-stone-500;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-brand-beige bg-white px-3.5 py-2.5 text-sm text-brand-dark outline-none transition placeholder:text-stone-400 focus:border-brand-taupe focus:ring-2 focus:ring-brand-taupe/25 disabled:bg-brand-ivory;
+  }
+
+  .input.ng-invalid.ng-touched {
+    @apply border-danger;
+  }
+
+  .field-error {
+    @apply mt-1 text-xs text-danger;
+  }
+
+  .table-wrap {
+    @apply overflow-x-auto;
+  }
+
+  .table {
+    @apply w-full min-w-[720px] border-collapse text-left text-sm;
+  }
+
+  .table th {
+    @apply border-b border-brand-beige bg-brand-ivory/60 px-4 py-3 text-xs font-bold uppercase tracking-wider text-stone-500;
+  }
+
+  .table td {
+    @apply border-b border-brand-beige/70 px-4 py-3 align-middle text-brand-dark;
+  }
+
+  .table tbody tr:hover td {
+    @apply bg-brand-ivory/50;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .tab {
+    @apply rounded-xl px-4 py-2 text-sm font-semibold text-stone-500 transition hover:bg-white hover:text-brand-brown;
+  }
+
+  .tab-active {
+    @apply bg-white text-brand-brown shadow-sm;
+  }
+
+  .muted {
+    @apply text-xs text-stone-400;
+  }
+}

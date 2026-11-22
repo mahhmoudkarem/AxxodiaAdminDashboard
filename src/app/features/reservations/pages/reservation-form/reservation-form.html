@@ -1,0 +1,120 @@
+<app-page-header
+  [title]="isNew() ? 'New reservation' : (details()?.reference_no ?? 'Reservation')"
+  [subtitle]="isNew() ? 'Book a room for a guest' : 'Created ' + (details()?.created_at | date: 'd MMM y, HH:mm')"
+  icon="fa-calendar-check"
+  backLink="/reservations"
+>
+  @if (details(); as d) {
+    <app-status-badge [status]="d.status" />
+    @if (auth.hasPermission('reservations.edit') && (d.status === 'Upcoming' || d.status === 'Active')) {
+      <button type="button" class="btn btn-outline !text-danger" (click)="cancelReservation()"><i class="fa-solid fa-ban"></i> Cancel</button>
+    }
+  }
+  @if (canSave()) {
+    <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading()">
+      <i class="fa-solid" [class.fa-floppy-disk]="!saving()" [class.fa-circle-notch]="saving()" [class.fa-spin]="saving()"></i>
+      {{ isNew() ? 'Create reservation' : 'Save' }}
+    </button>
+  }
+</app-page-header>
+
+@if (warnings().length) {
+  <div class="mb-5 rounded-2xl border border-warning/40 bg-warning/10 p-4 text-sm text-warning">
+    @for (w of warnings(); track w) {
+      <p><i class="fa-solid fa-triangle-exclamation"></i> {{ w }}</p>
+    }
+  </div>
+}
+
+@if (loading()) {
+  <app-loading />
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-6 xl:grid-cols-3">
+    <div class="space-y-6 xl:col-span-2">
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Room</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="label">Location</label>
+            <select class="input" [disabled]="!canSave()" (change)="setLocation($any($event.target).value ? +$any($event.target).value : null)">
+              <option value="">Select a location</option>
+              @for (l of locations(); track l.id) {
+                <option [value]="l.id" [selected]="l.id === locationId()">{{ l.name_en }}</option>
+              }
+            </select>
+          </div>
+          <div>
+            <label class="label">Room *</label>
+            <select class="input" formControlName="room_id">
+              <option [ngValue]="null">{{ locationId() ? 'Select a room' : 'Select a location first' }}</option>
+              @for (r of rooms(); track r.id) {
+                <option [ngValue]="r.id" [disabled]="r.status === 'OutOfService'">
+                  {{ r.room_number }} · {{ unitTypeName()(r.unit_type_id)?.name_en ?? '' }}{{ r.status === 'OutOfService' ? ' (out of service)' : '' }}
+                </option>
+              }
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Guest</h3>
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="label">Guest name *</label>
+            <input class="input" formControlName="guest_name" />
+          </div>
+          <div>
+            <label class="label">Phone (WhatsApp) *</label>
+            <input class="input" formControlName="guest_phone" dir="ltr" placeholder="+201001234567" />
+            @if (form.controls.guest_phone.touched && form.controls.guest_phone.invalid) {
+              <p class="field-error">Enter a valid phone number with the country code.</p>
+            }
+          </div>
+          <div>
+            <label class="label">Number of guests *</label>
+            <input type="number" class="input" formControlName="guests_count" min="1" max="50" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="label">Notes</label>
+            <textarea class="input min-h-24" formControlName="notes"></textarea>
+          </div>
+        </div>
+        @if (details()?.linked_customer_id; as cid) {
+          <a [routerLink]="['/customers', cid]" class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-taupe hover:text-brand-brown">
+            <i class="fa-solid fa-link"></i> Linked to customer #{{ cid }}
+          </a>
+        }
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="card card-body space-y-4">
+        <h3 class="card-title">Dates</h3>
+        <div>
+          <label class="label">Check-in *</label>
+          <input type="datetime-local" class="input" formControlName="check_in" />
+        </div>
+        <div>
+          <label class="label">Check-out *</label>
+          <input type="datetime-local" class="input" formControlName="check_out" />
+          @if (form.hasError('dates')) {
+            <p class="field-error">Check-out must be after check-in.</p>
+          }
+        </div>
+        <div class="rounded-xl bg-brand-ivory px-4 py-3 text-center">
+          <p class="font-heading text-3xl font-bold text-brand-brown">{{ nights() }}</p>
+          <p class="muted">night(s)</p>
+        </div>
+        <p class="muted"><i class="fa-solid fa-circle-info"></i> The stay is checked in / out automatically on these dates.</p>
+      </div>
+
+      @if (details()?.cancel_reason; as reason) {
+        <div class="card card-body">
+          <h3 class="card-title mb-2 !text-danger">Cancelled</h3>
+          <p class="text-sm text-stone-600">{{ reason }}</p>
+        </div>
+      }
+    </div>
+  </form>
+}

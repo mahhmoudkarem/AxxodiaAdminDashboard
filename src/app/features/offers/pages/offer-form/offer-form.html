@@ -1,0 +1,146 @@
+<app-page-header [title]="isNew() ? 'New offer' : (details()?.title ?? 'Offer')" subtitle="Percentage discount — no room prices are set here" icon="fa-tags" backLink="/offers">
+  @if (canSave()) {
+    <button type="button" class="btn btn-primary" (click)="save()" [disabled]="saving() || loading() || uploading()">
+      <i class="fa-solid" [class.fa-floppy-disk]="!saving()" [class.fa-circle-notch]="saving()" [class.fa-spin]="saving()"></i> Save
+    </button>
+  }
+</app-page-header>
+
+@if (loading()) {
+  <app-loading />
+} @else {
+  <form [formGroup]="form" (ngSubmit)="save()" class="grid gap-6 xl:grid-cols-3">
+    <div class="space-y-6 xl:col-span-2">
+      <div class="card card-body space-y-4">
+        <h3 class="card-title">Offer</h3>
+        <div>
+          <label class="label">Title *</label>
+          <input class="input" formControlName="title" placeholder="Summer escape — 20% off" />
+        </div>
+        <div>
+          <label class="label">Description *</label>
+          <textarea class="input min-h-32" formControlName="description"></textarea>
+        </div>
+        <div class="grid gap-4 md:grid-cols-3">
+          <div>
+            <label class="label">Discount % *</label>
+            <input type="number" class="input" formControlName="discount_percentage" min="0.01" max="100" step="0.01" />
+          </div>
+          <div>
+            <label class="label">Starts *</label>
+            <input type="datetime-local" class="input" formControlName="start_date" />
+          </div>
+          <div>
+            <label class="label">Ends *</label>
+            <input type="datetime-local" class="input" formControlName="end_date" />
+          </div>
+        </div>
+      </div>
+
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Who gets it?</h3>
+        <div class="grid gap-3 md:grid-cols-3">
+          @for (a of [
+            { v: 'AllCustomers', t: 'All customers', i: 'fa-globe' },
+            { v: 'TargetedCustomers', t: 'Chosen customers', i: 'fa-user-check' },
+            { v: 'Country', t: 'A country', i: 'fa-flag' }
+          ]; track a.v) {
+            <button
+              type="button"
+              class="flex items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm font-semibold transition"
+              [class]="audience() === a.v ? 'border-brand-brown bg-brand-brown text-white' : 'border-brand-beige text-stone-500 hover:border-brand-taupe'"
+              [disabled]="!canSave()"
+              (click)="audience.set($any(a.v))"
+            >
+              <i class="fa-solid {{ a.i }}"></i> {{ a.t }}
+            </button>
+          }
+        </div>
+
+        @if (audience() === 'Country') {
+          <div class="mt-5 md:w-72">
+            <label class="label">Country</label>
+            <select class="input" formControlName="target_country">
+              @for (c of countries; track c.code) {
+                <option [value]="c.code">{{ c.name }} ({{ c.code }})</option>
+              }
+            </select>
+          </div>
+        }
+
+        @if (audience() === 'TargetedCustomers') {
+          <div class="mt-5 space-y-3">
+            @if (canSearchCustomers() && canSave()) {
+              <app-search-input placeholder="Search customers by name or phone..." (search)="searchCustomers($event)" />
+              @if (searching()) {
+                <p class="muted">Searching...</p>
+              }
+              @if (results().length) {
+                <ul class="max-h-60 divide-y divide-brand-beige overflow-y-auto rounded-xl border border-brand-beige">
+                  @for (c of results(); track c.customer_id) {
+                    <li class="flex items-center justify-between px-4 py-2 text-sm">
+                      <span><b>{{ c.full_name }}</b> <span class="muted" dir="ltr">{{ c.phone }}</span> <span class="muted">· {{ c.country ?? '' }}</span></span>
+                      <button type="button" class="btn btn-sm btn-outline" [disabled]="customerIds().includes(c.customer_id)" (click)="addCustomer(c)">Add</button>
+                    </li>
+                  }
+                </ul>
+              }
+            } @else if (canSave()) {
+              <div class="flex gap-2">
+                <input #ids class="input" placeholder="Customer IDs, e.g. 12, 15, 40" />
+                <button type="button" class="btn btn-outline" (click)="addCustomerId(ids.value); ids.value = ''">Add</button>
+              </div>
+            }
+            <div class="flex flex-wrap gap-2">
+              @for (id of customerIds(); track id) {
+                <span class="chip bg-brand-beige text-brand-brown">
+                  {{ customerNames()[id] ?? 'Customer #' + id }}
+                  @if (canSave()) {
+                    <button type="button" (click)="removeCustomer(id)" aria-label="Remove"><i class="fa-solid fa-xmark"></i></button>
+                  }
+                </span>
+              } @empty {
+                <p class="muted">No customers chosen yet.</p>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="card card-body">
+        <h3 class="card-title mb-4">Image</h3>
+        <div class="relative aspect-[16/9] overflow-hidden rounded-xl bg-brand-dark">
+          @if (imageUrl()) {
+            <img [src]="imageUrl() | fileUrl" alt="" class="h-full w-full object-cover" />
+          } @else {
+            <div class="flex h-full items-center justify-center"><img src="images/brand/axxodia-logo-light.png" alt="Axxodia" class="h-20 w-auto opacity-80" /></div>
+          }
+          @if (uploading()) {
+            <div class="absolute inset-0 flex items-center justify-center bg-black/40 text-white"><i class="fa-solid fa-circle-notch fa-spin text-2xl"></i></div>
+          }
+        </div>
+        @if (canSave()) {
+          <div class="mt-3 flex gap-2">
+            <label class="btn btn-outline btn-sm flex-1 cursor-pointer">
+              <i class="fa-solid fa-cloud-arrow-up"></i> Upload
+              <input type="file" accept="image/*" class="hidden" (change)="onImage($any($event.target))" />
+            </label>
+            @if (imageUrl()) {
+              <button type="button" class="btn btn-outline btn-sm !text-danger" (click)="imageUrl.set(null)"><i class="fa-solid fa-trash"></i></button>
+            }
+          </div>
+        }
+      </div>
+
+      @if (details(); as d) {
+        <div class="card card-body text-sm">
+          <h3 class="card-title mb-3">Info</h3>
+          <p><span class="muted">Status:</span> {{ d.is_active ? 'Published' : 'Not published' }}</p>
+          <p><span class="muted">Created by:</span> {{ d.created_by_staff_name ?? '—' }}</p>
+        </div>
+      }
+    </div>
+  </form>
+}

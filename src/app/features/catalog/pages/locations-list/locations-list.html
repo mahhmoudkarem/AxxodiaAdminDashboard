@@ -1,0 +1,72 @@
+<app-page-header title="Locations" subtitle="Buildings and compounds shown in the guest app" icon="fa-building">
+  @if (auth.hasPermission(P.locations.create)) {
+    <a routerLink="/catalog/locations/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New location</a>
+  }
+</app-page-header>
+
+<app-data-table
+  [loading]="loading()"
+  [empty]="!rows().length"
+  emptyTitle="No locations"
+  [page]="page()"
+  [pageSize]="pageSize"
+  [total]="total()"
+  (pageChange)="goTo($event)"
+>
+  <div toolbar class="flex flex-col gap-3 border-b border-brand-beige p-4 md:flex-row md:items-center">
+    <div class="md:w-80"><app-search-input placeholder="Search locations..." (search)="search($event)" /></div>
+    <select class="input md:w-44" [value]="active()" (change)="filter($any($event.target).value)" aria-label="Status">
+      <option value="">All statuses</option>
+      <option value="true">Active</option>
+      <option value="false">Inactive</option>
+    </select>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        @if (canReorder()) {
+          <th class="w-20">Order</th>
+        }
+        <th>Name</th>
+        <th>Area</th>
+        <th>Unit types</th>
+        <th>Rooms</th>
+        <th>Status</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id; let i = $index, first = $first, last = $last) {
+        <tr>
+          @if (canReorder()) {
+            <td>
+              <div class="flex">
+                <button type="button" class="icon-btn h-7 w-7" [disabled]="first" (click)="move(i, -1)" aria-label="Move up"><i class="fa-solid fa-chevron-up text-xs"></i></button>
+                <button type="button" class="icon-btn h-7 w-7" [disabled]="last" (click)="move(i, 1)" aria-label="Move down"><i class="fa-solid fa-chevron-down text-xs"></i></button>
+              </div>
+            </td>
+          }
+          <td>
+            <a [routerLink]="['/catalog/locations', row.id]" class="font-semibold text-brand-brown hover:underline">{{ row.name_en }}</a>
+            <p class="muted" dir="rtl">{{ row.name_ar }}</p>
+          </td>
+          <td>{{ row.area_en || '—' }}</td>
+          <td>
+            <a [routerLink]="['/catalog/unit-types']" [queryParams]="{ location: row.id }" class="hover:underline">{{ row.unit_types_count }}</a>
+          </td>
+          <td>
+            <a [routerLink]="['/catalog/rooms']" [queryParams]="{ location: row.id }" class="hover:underline">{{ row.rooms_count }}</a>
+          </td>
+          <td><app-status-badge [status]="row.is_active" /></td>
+          <td class="text-right">
+            <a [routerLink]="['/catalog/locations', row.id]" class="icon-btn" title="Open"><i class="fa-solid fa-pen"></i></a>
+            @if (auth.hasPermission(P.locations.delete)) {
+              <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(row)"><i class="fa-solid fa-trash"></i></button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>

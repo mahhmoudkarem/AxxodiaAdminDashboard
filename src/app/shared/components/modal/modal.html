@@ -1,0 +1,22 @@
+@if (open()) {
+  <div class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-brand-dark/50 p-4 backdrop-blur-sm md:items-center" (click)="close.emit()">
+    <div class="card my-8 w-full {{ widthClass() }}" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+      <div class="flex items-start justify-between gap-4 border-b border-brand-beige px-6 py-4">
+        <div class="flex items-center gap-3">
+          <img src="images/brand/axxodia-mark.png" alt="" class="h-5 w-auto" />
+          <div>
+            <h2 class="font-heading text-2xl font-bold text-brand-brown">{{ title() }}</h2>
+            @if (subtitle()) {
+              <p class="text-xs text-stone-400">{{ subtitle() }}</p>
+            }
+          </div>
+        </div>
+        <button type="button" class="icon-btn" (click)="close.emit()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="max-h-[75vh] overflow-y-auto px-6 py-5">
+        <ng-content />
+      </div>
+      <ng-content select="[footer]" />
+    </div>
+  </div>
+}

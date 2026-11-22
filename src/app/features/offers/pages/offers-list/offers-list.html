@@ -1,0 +1,63 @@
+<app-page-header title="Offers" subtitle="Percentage discounts for all customers, chosen customers or a country" icon="fa-tags">
+  @if (auth.hasPermission(P.offers.create)) {
+    <a routerLink="/offers/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New offer</a>
+  }
+</app-page-header>
+
+<div class="mb-5 flex flex-wrap gap-1 rounded-2xl bg-brand-beige/60 p-1">
+  @for (t of ['all', 'live', 'scheduled', 'ended', 'draft']; track t) {
+    <button type="button" class="tab capitalize" [class.tab-active]="tab() === t" (click)="tab.set($any(t))">{{ t === 'draft' ? 'Unpublished' : t }}</button>
+  }
+</div>
+
+@if (loading()) {
+  <app-loading />
+} @else if (!visible().length) {
+  <div class="card"><app-empty-state title="No offers" message="Create an offer to reward your guests." /></div>
+} @else {
+  <div class="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+    @for (o of visible(); track o.id) {
+      <article class="card flex flex-col overflow-hidden">
+        <div class="relative aspect-[16/7] bg-brand-dark">
+          @if (o.image_url) {
+            <img [src]="o.image_url | fileUrl" alt="" class="h-full w-full object-cover" loading="lazy" />
+          } @else {
+            <div class="flex h-full items-center justify-center">
+              <img src="images/brand/axxodia-logo-light.png" alt="Axxodia" class="h-20 w-auto opacity-80" />
+            </div>
+          }
+          <span class="absolute left-4 top-4 rounded-xl bg-brand-gold px-3 py-1.5 font-heading text-2xl font-bold text-white shadow">-{{ o.discount_percentage }}%</span>
+          <span class="absolute right-4 top-4"><app-status-badge [status]="phase(o) === 'draft' ? 'inactive' : phase(o) === 'ended' ? 'expired' : phase(o) === 'live' ? 'active' : 'upcoming'" [label]="phase(o) === 'draft' ? 'Unpublished' : (phase(o) | humanize)" /></span>
+        </div>
+        <div class="flex flex-1 flex-col p-5">
+          <a [routerLink]="['/offers', o.id]" class="font-heading text-2xl font-bold text-brand-brown hover:underline">{{ o.title }}</a>
+          <p class="mt-1 text-xs text-stone-400">{{ o.start_date | date: 'd MMM y' }} → {{ o.end_date | date: 'd MMM y' }}</p>
+          <p class="mt-3 text-sm text-stone-500">
+            <i class="fa-solid fa-users text-brand-taupe"></i>
+            @switch (o.audience) {
+              @case ('AllCustomers') { All customers }
+              @case ('TargetedCustomers') { {{ o.target_customers_count }} chosen customer(s) }
+              @case ('Country') { Customers from {{ o.target_country }} }
+            }
+          </p>
+          <div class="mt-auto flex items-center justify-between gap-2 pt-5">
+            @if (auth.hasPermission(P.offers.publish)) {
+              <label class="flex cursor-pointer items-center gap-2 text-sm font-semibold text-stone-500">
+                <input type="checkbox" class="h-4 w-4 accent-brand-brown" [checked]="o.is_active" (change)="toggle(o)" />
+                Published
+              </label>
+            } @else {
+              <span></span>
+            }
+            <div>
+              <a [routerLink]="['/offers', o.id]" class="icon-btn" title="Edit"><i class="fa-solid fa-pen"></i></a>
+              @if (auth.hasPermission(P.offers.delete)) {
+                <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(o)"><i class="fa-solid fa-trash"></i></button>
+              }
+            </div>
+          </div>
+        </div>
+      </article>
+    }
+  </div>
+}

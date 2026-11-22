@@ -1,0 +1,100 @@
+<app-page-header title="Reports" subtitle="Operations, customers, staff performance, services, payments and offers" icon="fa-chart-line">
+  @if (canExport()) {
+    <div class="flex gap-1 rounded-xl border border-brand-beige bg-white p-1">
+      @for (f of ['xlsx', 'csv', 'pdf']; track f) {
+        <button type="button" class="btn btn-sm btn-ghost uppercase" (click)="export($any(f))" [disabled]="!!exporting()">
+          <i class="fa-solid" [class.fa-circle-notch]="exporting() === f" [class.fa-spin]="exporting() === f"
+             [class.fa-file-excel]="f === 'xlsx' && exporting() !== f" [class.fa-file-csv]="f === 'csv' && exporting() !== f" [class.fa-file-pdf]="f === 'pdf' && exporting() !== f"></i>
+          {{ f }}
+        </button>
+      }
+    </div>
+  }
+</app-page-header>
+
+<div class="mb-5 flex gap-2 overflow-x-auto pb-1">
+  @for (r of reports; track r.key) {
+    <button type="button" class="btn shrink-0" [class]="active() === r.key ? 'btn-primary' : 'btn-outline'" (click)="select(r.key)">
+      <i class="fa-solid {{ r.icon }}"></i> {{ r.label }}
+    </button>
+  }
+</div>
+
+<div class="card mb-5 grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
+  <div><label class="label">From</label><input type="date" class="input" [value]="filters().from" (change)="set('from', $any($event.target).value)" /></div>
+  <div><label class="label">To</label><input type="date" class="input" [value]="filters().to" (change)="set('to', $any($event.target).value)" /></div>
+  <div>
+    <label class="label">Location</label>
+    <select class="input" (change)="set('locationId', $any($event.target).value)">
+      <option value="">All locations</option>
+      @for (l of locations(); track l.id) {
+        <option [value]="l.id">{{ l.name_en }}</option>
+      }
+    </select>
+  </div>
+  <div><label class="label">Status</label><input class="input" placeholder="e.g. Completed" (change)="set('status', $any($event.target).value)" /></div>
+  <div><label class="label">Search</label><app-search-input (search)="set('search', $event)" /></div>
+</div>
+
+@if (summary().length) {
+  <div class="mb-5 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+    @for (s of summary(); track s[0]) {
+      <div class="card px-4 py-3">
+        <p class="text-[11px] font-bold uppercase tracking-wider text-stone-400">{{ s[0] | humanize }}</p>
+        <p class="font-heading text-2xl font-bold text-brand-brown">{{ s[1] | number: '1.0-2' }}</p>
+      </div>
+    }
+  </div>
+}
+
+@if (chart(); as c) {
+  <div class="card mb-5 p-5">
+    <h3 class="card-title mb-4">{{ c.name | humanize }}</h3>
+    <div class="flex h-48 items-end gap-2 overflow-x-auto">
+      @for (b of c.bars; track $index) {
+        <div class="flex min-w-10 flex-1 flex-col items-center justify-end gap-1" [title]="b.label + ': ' + b.value">
+          <span class="text-[11px] font-semibold text-stone-500">{{ b.value | number: '1.0-1' }}</span>
+          <div class="w-full rounded-t-lg bg-gradient-to-t from-brand-brown to-brand-taupe" [style.height.%]="b.pct || 1"></div>
+          <span class="max-w-16 truncate text-[10px] text-stone-400">{{ b.label }}</span>
+        </div>
+      }
+    </div>
+  </div>
+}
+
+<app-data-table
+  [loading]="loading()"
+  [empty]="!result()?.data?.length"
+  emptyTitle="No data for this period"
+  [page]="page()"
+  [pageSize]="pageSize"
+  [total]="result()?.meta?.total_count ?? 0"
+  (pageChange)="goTo($event)"
+>
+  <table class="table">
+    <thead>
+      <tr>
+        @for (col of columns(); track col) {
+          <th class="whitespace-nowrap">{{ header(col) }}</th>
+        }
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of result()?.data ?? []; track $index) {
+        <tr>
+          @for (col of columns(); track col) {
+            <td class="whitespace-nowrap">
+              @switch (kind(col, row[col])) {
+                @case ('date') { {{ $any(row[col]) | date: 'd MMM y, HH:mm' }} }
+                @case ('status') { <app-status-badge [status]="$any(row[col])" /> }
+                @case ('bool') { <app-status-badge [status]="$any(row[col])" /> }
+                @case ('money') { {{ $any(row[col]) | number: '1.2-2' }} }
+                @default { {{ asString(row[col]) }} }
+              }
+            </td>
+          }
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>

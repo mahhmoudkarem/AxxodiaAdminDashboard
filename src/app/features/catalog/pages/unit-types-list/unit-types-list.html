@@ -1,0 +1,56 @@
+<app-page-header title="Unit types" subtitle="Apartment / suite types of every location" icon="fa-layer-group">
+  @if (auth.hasPermission(P.unitTypes.create)) {
+    <a routerLink="/catalog/unit-types/new" [queryParams]="{ location: locationId() }" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New unit type</a>
+  }
+</app-page-header>
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No unit types" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="flex flex-col gap-3 border-b border-brand-beige p-4 md:flex-row md:items-center">
+    <div class="md:w-80"><app-search-input placeholder="Search unit types..." (search)="search($event)" /></div>
+    <select class="input md:w-56" [value]="locationId() ?? ''" (change)="setLocation($any($event.target).value)" aria-label="Location">
+      <option value="">All locations</option>
+      @for (l of locations(); track l.id) {
+        <option [value]="l.id" [selected]="l.id === locationId()">{{ l.name_en }}</option>
+      }
+    </select>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th>Location</th>
+        <th>Bedrooms</th>
+        <th>Bathrooms</th>
+        <th>Max guests</th>
+        <th>Area</th>
+        <th>Rooms</th>
+        <th>Status</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of rows(); track row.id) {
+        <tr>
+          <td>
+            <a [routerLink]="['/catalog/unit-types', row.id]" class="font-semibold text-brand-brown hover:underline">{{ row.name_en }}</a>
+            <p class="muted" dir="rtl">{{ row.name_ar }}</p>
+          </td>
+          <td>{{ locationName()(row.location_id) }}</td>
+          <td>{{ row.bedrooms }}</td>
+          <td>{{ row.bathrooms }}</td>
+          <td>{{ row.max_guests }}</td>
+          <td>{{ row.area_sqm ? (row.area_sqm | number: '1.0-2') + ' m²' : '—' }}</td>
+          <td><a [routerLink]="['/catalog/rooms']" [queryParams]="{ location: row.location_id, unitType: row.id }" class="hover:underline">{{ row.rooms_count }}</a></td>
+          <td><app-status-badge [status]="row.is_active" /></td>
+          <td class="text-right">
+            <a [routerLink]="['/catalog/unit-types', row.id]" class="icon-btn" title="Open"><i class="fa-solid fa-pen"></i></a>
+            @if (auth.hasPermission(P.unitTypes.delete)) {
+              <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(row)"><i class="fa-solid fa-trash"></i></button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>

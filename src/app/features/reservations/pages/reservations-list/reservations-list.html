@@ -1,0 +1,76 @@
+<app-page-header title="Reservations" subtitle="Bookings created by the team for every room" icon="fa-calendar-check">
+  <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()"><i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i></button>
+  @if (auth.hasPermission(P.reservations.create)) {
+    <a routerLink="/reservations/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New reservation</a>
+  }
+</app-page-header>
+
+<!-- Status tabs -->
+<div class="mb-4 flex flex-wrap gap-1 rounded-2xl bg-brand-beige/60 p-1">
+  <button type="button" class="tab" [class.tab-active]="status() === ''" (click)="setStatus('')">All <span class="ml-1 text-xs opacity-60">{{ counts()['all'] }}</span></button>
+  @for (s of statuses; track s) {
+    <button type="button" class="tab" [class.tab-active]="status() === s" (click)="setStatus(s)">{{ s }} <span class="ml-1 text-xs opacity-60">{{ counts()[s] ?? 0 }}</span></button>
+  }
+</div>
+
+<app-data-table
+  [loading]="loading()"
+  [empty]="!filtered().length"
+  emptyTitle="No reservations"
+  [page]="page()"
+  [pageSize]="pageSize"
+  [total]="filtered().length"
+  (pageChange)="page.set($event)"
+>
+  <div toolbar class="flex flex-col gap-3 border-b border-brand-beige p-4 md:flex-row md:items-end">
+    <div class="md:w-80"><app-search-input placeholder="Reference, guest, phone, room..." (search)="setSearch($event)" /></div>
+    <div>
+      <label class="label">Check-in from</label>
+      <input type="date" class="input" [value]="from()" (change)="setDate('from', $any($event.target).value)" />
+    </div>
+    <div>
+      <label class="label">to</label>
+      <input type="date" class="input" [value]="to()" (change)="setDate('to', $any($event.target).value)" />
+    </div>
+  </div>
+
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Reference</th>
+        <th>Guest</th>
+        <th>Room</th>
+        <th>Check-in</th>
+        <th>Check-out</th>
+        <th>Guests</th>
+        <th>Status</th>
+        <th class="text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (r of paged(); track r.id) {
+        <tr>
+          <td><a [routerLink]="['/reservations', r.id]" class="font-semibold text-brand-brown hover:underline">{{ r.reference_no }}</a></td>
+          <td>
+            <p class="font-semibold">{{ r.guest_name }}</p>
+            <p class="muted" dir="ltr">{{ r.guest_phone }}</p>
+          </td>
+          <td>{{ r.room_number ?? '—' }}</td>
+          <td>{{ r.check_in | date: 'd MMM y, HH:mm' }}</td>
+          <td>{{ r.check_out | date: 'd MMM y, HH:mm' }}</td>
+          <td>{{ r.guests_count }}</td>
+          <td><app-status-badge [status]="r.status" /></td>
+          <td class="whitespace-nowrap text-right">
+            <a [routerLink]="['/reservations', r.id]" class="icon-btn" title="Open"><i class="fa-solid fa-pen"></i></a>
+            @if (auth.hasPermission(P.reservations.edit) && (r.status === 'Upcoming' || r.status === 'Active')) {
+              <button type="button" class="icon-btn hover:!text-warning" title="Cancel" (click)="cancel(r)"><i class="fa-solid fa-ban"></i></button>
+            }
+            @if (auth.hasPermission(P.reservations.delete)) {
+              <button type="button" class="icon-btn hover:!text-danger" title="Delete" (click)="remove(r)"><i class="fa-solid fa-trash"></i></button>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</app-data-table>

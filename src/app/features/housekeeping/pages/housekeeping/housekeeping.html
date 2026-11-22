@@ -1,0 +1,71 @@
+<app-page-header title="Housekeeping" subtitle="Cleaning tasks of every location and the request types guests can choose" icon="fa-broom">
+  @if (tab() === 'types' && canManageTypes()) {
+    <button type="button" class="btn btn-primary" (click)="open('new')"><i class="fa-solid fa-plus"></i> New type</button>
+  }
+</app-page-header>
+
+<div class="mb-5 inline-flex gap-1 rounded-2xl bg-brand-beige/60 p-1">
+  @if (canSeeTasks()) {
+    <button type="button" class="tab" [class.tab-active]="tab() === 'tasks'" (click)="tab.set('tasks')"><i class="fa-solid fa-list-check"></i> Tasks</button>
+  }
+  <button type="button" class="tab" [class.tab-active]="tab() === 'types'" (click)="tab.set('types')"><i class="fa-solid fa-tags"></i> Request types</button>
+</div>
+
+@if (tab() === 'tasks') {
+  <app-task-report kind="housekeeping" />
+} @else {
+  <app-data-table [loading]="loading()" [empty]="!types().length" emptyTitle="No request types">
+    <table class="table">
+      <thead><tr><th class="w-16">Icon</th><th>Name (English)</th><th>Name (Arabic)</th><th>Order</th><th>Status</th><th class="text-right">Actions</th></tr></thead>
+      <tbody>
+        @for (t of types(); track t.id) {
+          <tr>
+            <td><span class="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-ivory text-brand-brown"><i class="fa-solid {{ t.icon || 'fa-broom' }}"></i></span></td>
+            <td class="font-semibold">{{ t.name_en }}</td>
+            <td dir="rtl" class="text-right md:text-left">{{ t.name_ar }}</td>
+            <td>{{ t.sort_order }}</td>
+            <td><app-status-badge [status]="t.is_active" /></td>
+            <td class="text-right">
+              @if (canManageTypes()) {
+                <button type="button" class="icon-btn" (click)="open(t)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button type="button" class="icon-btn hover:!text-danger" (click)="remove(t)" title="Delete"><i class="fa-solid fa-trash"></i></button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </app-data-table>
+}
+
+<app-modal [open]="!!editing()" [title]="editing() === 'new' ? 'New request type' : 'Edit request type'" (close)="editing.set(null)">
+  <form [formGroup]="form" (ngSubmit)="save()" id="hk-type-form" class="space-y-4">
+    <div class="grid gap-4 md:grid-cols-2">
+      <div><label class="label">Name (English) *</label><input class="input" formControlName="name_en" /></div>
+      <div><label class="label">Name (Arabic) *</label><input class="input" formControlName="name_ar" dir="rtl" /></div>
+    </div>
+    <div>
+      <label class="label">Icon</label>
+      <div class="flex gap-2">
+        <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-ivory text-brand-brown"><i class="fa-solid {{ form.value.icon || 'fa-broom' }}"></i></span>
+        <input class="input" formControlName="icon" placeholder="fa-broom" />
+      </div>
+      <div class="mt-2 flex flex-wrap gap-1.5">
+        @for (i of iconSuggestions; track i) {
+          <button type="button" class="icon-btn h-8 w-8 border border-brand-beige" (click)="form.patchValue({ icon: i })"><i class="fa-solid {{ i }} text-xs"></i></button>
+        }
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4">
+      <div><label class="label">Sort order</label><input type="number" class="input" formControlName="sort_order" /></div>
+      <label class="mt-6 flex items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+        <span class="text-sm font-semibold text-stone-600">Active</span>
+        <input type="checkbox" class="h-5 w-5 accent-brand-brown" formControlName="is_active" />
+      </label>
+    </div>
+  </form>
+  <div footer class="flex justify-end gap-2 border-t border-brand-beige px-6 py-4">
+    <button type="button" class="btn btn-outline" (click)="editing.set(null)">Cancel</button>
+    <button type="submit" form="hk-type-form" class="btn btn-primary" [disabled]="saving()">Save</button>
+  </div>
+</app-modal>

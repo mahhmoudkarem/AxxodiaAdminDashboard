@@ -1,0 +1,48 @@
+<app-page-header title="Notifications" subtitle="Your inbox — new reservations, chats, tasks and requests" icon="fa-bell">
+  <button type="button" class="btn btn-outline" (click)="showPrefs.set(!showPrefs())"><i class="fa-solid fa-sliders"></i> Preferences</button>
+  <button type="button" class="btn btn-primary" (click)="readAll()"><i class="fa-solid fa-check-double"></i> Mark all read</button>
+</app-page-header>
+
+@if (showPrefs()) {
+  <div class="card mb-5 p-5">
+    <h3 class="card-title mb-3">What should notify me?</h3>
+    <div class="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+      @for (p of prefs(); track p.category) {
+        <label class="flex cursor-pointer items-center justify-between rounded-xl bg-brand-ivory px-4 py-3">
+          <span class="flex items-center gap-2 text-sm font-semibold text-stone-600"><i class="fa-solid {{ icons[p.category] ?? 'fa-bell' }} text-brand-taupe"></i>{{ p.category | humanize }}</span>
+          <input type="checkbox" class="h-5 w-5 accent-brand-brown" [checked]="p.is_enabled" (change)="togglePref(p)" />
+        </label>
+      }
+    </div>
+  </div>
+}
+
+<app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No notifications" emptyMessage="You are all caught up." [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
+  <div toolbar class="flex flex-wrap items-center gap-2 border-b border-brand-beige p-4">
+    <button type="button" class="chip border" [class]="category() === '' ? 'border-brand-brown bg-brand-brown text-white' : 'border-brand-beige text-stone-500'" (click)="setCategory('')">All</button>
+    @for (c of categories; track c) {
+      <button type="button" class="chip border" [class]="category() === c ? 'border-brand-brown bg-brand-brown text-white' : 'border-brand-beige text-stone-500'" (click)="setCategory(c)">{{ c | humanize }}</button>
+    }
+    <label class="ml-auto flex items-center gap-2 text-sm text-stone-500">
+      <input type="checkbox" class="accent-brand-brown" [checked]="unreadOnly()" (change)="toggleUnread($any($event.target).checked)" /> Unread only
+    </label>
+  </div>
+  <ul class="divide-y divide-brand-beige">
+    @for (n of rows(); track n.id) {
+      <li class="flex cursor-pointer gap-4 px-5 py-4 transition hover:bg-brand-ivory/60" [class.bg-brand-gold/5]="!n.is_read" (click)="read(n)">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-ivory text-brand-brown"><i class="fa-solid {{ icons[n.category] ?? 'fa-bell' }}"></i></div>
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2">
+            @if (!n.is_read) {
+              <span class="h-2 w-2 rounded-full bg-brand-gold"></span>
+            }
+            <p class="font-semibold text-brand-dark">{{ n.title }}</p>
+          </div>
+          <p class="text-sm text-stone-500">{{ n.body }}</p>
+          <p class="mt-1 text-xs text-stone-400">{{ n.category | humanize }} · {{ n.created_at | date: 'medium' }}</p>
+        </div>
+        <button type="button" class="icon-btn self-center hover:!text-danger" title="Delete" (click)="remove(n, $event)"><i class="fa-solid fa-trash"></i></button>
+      </li>
+    }
+  </ul>
+</app-data-table>
