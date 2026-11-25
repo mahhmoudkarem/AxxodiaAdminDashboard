@@ -1,18 +1,10 @@
 <app-page-header title="Reports" subtitle="Operations, customers, staff performance, services, payments and offers" icon="fa-chart-line">
-  @if (canExport()) {
-    <div class="flex gap-1 rounded-xl border border-brand-beige bg-white p-1">
-      @for (f of ['xlsx', 'csv', 'pdf']; track f) {
-        <button type="button" class="btn btn-sm btn-ghost uppercase" (click)="export($any(f))" [disabled]="!!exporting()">
-          <i class="fa-solid" [class.fa-circle-notch]="exporting() === f" [class.fa-spin]="exporting() === f"
-             [class.fa-file-excel]="f === 'xlsx' && exporting() !== f" [class.fa-file-csv]="f === 'csv' && exporting() !== f" [class.fa-file-pdf]="f === 'pdf' && exporting() !== f"></i>
-          {{ f }}
-        </button>
-      }
-    </div>
+  @if (canExport() && columns().length) {
+    <app-export-buttons [title]="activeLabel() + ' report'" [fileName]="'axxodia-' + active() + '-report'" [subtitle]="exportSubtitle()" [columns]="exportColumns()" [load]="loadAll" />
   }
 </app-page-header>
 
-<div class="mb-5 flex gap-2 overflow-x-auto pb-1">
+<div class="-mx-1 mb-5 flex gap-2 overflow-x-auto px-1 pb-2">
   @for (r of reports; track r.key) {
     <button type="button" class="btn shrink-0" [class]="active() === r.key ? 'btn-primary' : 'btn-outline'" (click)="select(r.key)">
       <i class="fa-solid {{ r.icon }}"></i> {{ r.label }}
@@ -20,7 +12,7 @@
   }
 </div>
 
-<div class="card mb-5 grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-5">
+<div class="card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-5">
   <div><label class="label">From</label><input type="date" class="input" [value]="filters().from" (change)="set('from', $any($event.target).value)" /></div>
   <div><label class="label">To</label><input type="date" class="input" [value]="filters().to" (change)="set('to', $any($event.target).value)" /></div>
   <div>

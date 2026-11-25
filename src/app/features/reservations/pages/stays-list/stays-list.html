@@ -1,5 +1,6 @@
 <app-page-header title="Stays" subtitle="Guests in house — check-in and check-out follow the reservation dates" icon="fa-bed">
   <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()"><i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i> Refresh</button>
+  <app-export-buttons title="Stays" fileName="axxodia-stays" [columns]="exportColumns" [load]="loadAll" />
 </app-page-header>
 
 <div class="mb-4 flex flex-wrap gap-1 rounded-2xl bg-brand-beige/60 p-1">

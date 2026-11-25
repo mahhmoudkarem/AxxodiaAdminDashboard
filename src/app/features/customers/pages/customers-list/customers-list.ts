@@ -3,37 +3,58 @@ import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Auth } from '../../../../core/auth/services/auth';
 import { P } from '../../../../core/constants/permissions';
-import { AdminCustomerListItem, ExportFormat, UsersSummary } from '../../../../core/models';
+import { AdminCustomerListItem, UsersSummary } from '../../../../core/models';
+import { ExportColumn, Exporter } from '../../../../core/services/exporter';
+import { map } from 'rxjs';
 import { Confirm } from '../../../../core/services/confirm';
 import { Toast } from '../../../../core/services/toast';
-import { saveBlob } from '../../../../core/utils/format';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SearchInput } from '../../../../shared/components/search-input/search-input';
 import { StatCard } from '../../../../shared/components/stat-card/stat-card';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
-import { ReportsApi } from '../../../reports/services/reports-api';
 import { CustomersApi } from '../../services/customers-api';
 
-// AdminCustomersController: list / summary / block-unblock.  Export to Excel = ReportsController (reports.export).
+// AdminCustomersController: list / summary / block-unblock. Excel / PDF are built in the browser.
 @Component({
-  imports: [PageHeader, DataTable, SearchInput, StatusBadge, StatCard, RouterLink, DatePipe],
+  imports: [PageHeader, DataTable, SearchInput, StatusBadge, StatCard, ExportButtons, RouterLink, DatePipe],
   selector: 'app-customers-list',
   templateUrl: './customers-list.html',
 })
 export class CustomersList implements OnInit {
   private readonly api = inject(CustomersApi);
-  private readonly reports = inject(ReportsApi);
+  private readonly exporter = inject(Exporter);
   private readonly toast = inject(Toast);
   private readonly confirm = inject(Confirm);
   readonly auth = inject(Auth);
   readonly canEdit = computed(() => this.auth.hasPermission(P.customers.edit));
-  readonly canExport = computed(() => this.auth.hasPermission(P.reports.export));
+  readonly canExport = computed(() => this.auth.hasPermission(P.customers.export, P.reports.export));
 
   readonly rows = signal<AdminCustomerListItem[]>([]);
   readonly summary = signal<UsersSummary | null>(null);
   readonly loading = signal(true);
-  readonly exporting = signal<ExportFormat | null>(null);
+
+  readonly exportColumns: ExportColumn<AdminCustomerListItem>[] = [
+    { label: 'ID', value: (c) => c.id, type: 'number' },
+    { label: 'Name', value: (c) => c.full_name },
+    { label: 'Phone', value: (c) => c.phone },
+    { label: 'Email', value: (c) => c.email },
+    { label: 'Country', value: (c) => c.country },
+    { label: 'Language', value: (c) => c.language },
+    { label: 'Status', value: (c) => (c.status === 'Disabled' ? 'Blocked' : c.status) },
+    { label: 'Reservations', value: (c) => c.reservations, type: 'number' },
+    { label: 'In house', value: (c) => c.checked_in_now },
+    { label: 'Joined', value: (c) => c.created_at, type: 'date' },
+    { label: 'Last active', value: (c) => c.last_active_at, type: 'date' },
+  ];
+  // every page with the current filters
+  readonly loadAll = () =>
+    this.exporter.fetchAll((page, pageSize) =>
+      this.api
+        .list({ search: this.search() || null, status: this.status() || null, page, pageSize })
+        .pipe(map((r) => ({ data: r.data, total: r.meta.total }))),
+    );
   readonly page = signal(1);
   readonly pageSize = 20;
   readonly total = signal(0);
@@ -90,17 +111,6 @@ export class CustomersList implements OnInit {
         this.api.summary().subscribe({ next: (s) => this.summary.set(s), error: () => {} });
       },
       error: () => {},
-    });
-  }
-
-  export(format: ExportFormat): void {
-    this.exporting.set(format);
-    this.reports.export('customers', { search: this.search() || null, status: this.status() || null }, format).subscribe({
-      next: ({ blob, fileName }) => {
-        saveBlob(blob, fileName);
-        this.exporting.set(null);
-      },
-      error: () => this.exporting.set(null),
     });
   }
 }

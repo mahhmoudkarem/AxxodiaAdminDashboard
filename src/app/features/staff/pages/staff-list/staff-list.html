@@ -1,11 +1,12 @@
 <app-page-header title="Staff" subtitle="Customer service, housekeeping, maintenance and admins — who works where and who is online" icon="fa-id-badge">
+  <app-export-buttons title="Staff" fileName="axxodia-staff" [columns]="exportColumns" [load]="loadAll" />
   @if (canManage()) {
     <button type="button" class="btn btn-primary" (click)="open('new')"><i class="fa-solid fa-user-plus"></i> New employee</button>
   }
 </app-page-header>
 
 <app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No employees" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
-  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 md:grid-cols-2 xl:grid-cols-5">
+  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 sm:grid-cols-2 xl:grid-cols-5">
     <app-search-input placeholder="Name or email..." (search)="set('search', $event)" />
     <select class="input" (change)="set('role', $any($event.target).value)" aria-label="Role">
       <option value="">All roles</option>

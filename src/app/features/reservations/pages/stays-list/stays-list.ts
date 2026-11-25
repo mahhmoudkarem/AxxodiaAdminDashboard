@@ -6,6 +6,8 @@ import { P } from '../../../../core/constants/permissions';
 import { StayDetails, StayListItem } from '../../../../core/models';
 import { Confirm } from '../../../../core/services/confirm';
 import { Toast } from '../../../../core/services/toast';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
+import { ExportColumn } from '../../../../core/services/exporter';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
 import { Modal } from '../../../../shared/components/modal/modal';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
@@ -15,7 +17,7 @@ import { ReservationsApi } from '../../services/reservations-api';
 
 // StaysController: a stay follows the reservation dates automatically; the admin can only view / cancel it.
 @Component({
-  imports: [PageHeader, DataTable, SearchInput, StatusBadge, Modal, DatePipe, RouterLink],
+  imports: [PageHeader, DataTable, SearchInput, StatusBadge, Modal, ExportButtons, DatePipe, RouterLink],
   selector: 'app-stays-list',
   templateUrl: './stays-list.html',
 })
@@ -56,6 +58,19 @@ export class StaysList implements OnInit {
       .sort((a, b) => b.check_in.localeCompare(a.check_in));
   });
   readonly paged = computed(() => this.filtered().slice((this.page() - 1) * this.pageSize, this.page() * this.pageSize));
+
+  readonly exportColumns: ExportColumn<StayListItem>[] = [
+    { label: 'Guest', value: (s) => s.guest_name },
+    { label: 'Phone', value: (s) => s.guest_phone },
+    { label: 'Room', value: (s) => s.room_number },
+    { label: 'Reservation', value: (s) => s.reference_no },
+    { label: 'Check-in', value: (s) => s.check_in, type: 'date' },
+    { label: 'Check-out', value: (s) => s.check_out, type: 'date' },
+    { label: 'Checked in at', value: (s) => s.checked_in_at, type: 'date' },
+    { label: 'Checked out at', value: (s) => s.checked_out_at, type: 'date' },
+    { label: 'Status', value: (s) => s.status },
+  ];
+  readonly loadAll = async () => this.filtered();
 
   ngOnInit(): void {
     this.load();

@@ -1,5 +1,6 @@
 <app-page-header title="Reservations" subtitle="Bookings created by the team for every room" icon="fa-calendar-check">
-  <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()"><i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i></button>
+  <button type="button" class="btn btn-outline" (click)="load()" [disabled]="loading()" title="Refresh"><i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i></button>
+  <app-export-buttons title="Reservations" fileName="axxodia-reservations" [columns]="exportColumns" [load]="loadAll" />
   @if (auth.hasPermission(P.reservations.create)) {
     <a routerLink="/reservations/new" class="btn btn-primary"><i class="fa-solid fa-plus"></i> New reservation</a>
   }

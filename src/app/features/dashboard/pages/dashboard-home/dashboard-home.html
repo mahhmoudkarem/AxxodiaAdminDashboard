@@ -36,14 +36,14 @@
   <app-loading message="Loading dashboard" />
 } @else if (summary(); as s) {
   <!-- Stays -->
-  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     <app-stat-card label="Guests checked in" [value]="s.stays.checked_in" icon="fa-bed" tone="brown" link="/stays" />
     <app-stat-card label="Check-ins today" [value]="s.stays.check_ins_today" icon="fa-right-to-bracket" tone="success" link="/reservations" />
     <app-stat-card label="Check-outs today" [value]="s.stays.check_outs_today" icon="fa-right-from-bracket" tone="warning" link="/stays" />
     <app-stat-card label="Upcoming reservations" [value]="s.stays.upcoming_reservations" icon="fa-calendar-days" tone="gold" link="/reservations" />
   </div>
 
-  <div class="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="mt-4 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     <app-stat-card label="Staff working now" [value]="s.staff.working_now" [hint]="s.staff.active_staff + ' active employees'" icon="fa-user-clock" tone="info" link="/staff" />
     <app-stat-card label="Unassigned chats" [value]="s.chat.unassigned" [hint]="s.chat.assigned + ' assigned'" icon="fa-comments" [tone]="s.chat.unassigned > 0 ? 'danger' : 'success'" link="/chat-oversight" />
     <app-stat-card label="Active offers" [value]="s.active_offers" icon="fa-tags" tone="gold" link="/offers" />

@@ -2,9 +2,12 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Auth } from '../../../../core/auth/services/auth';
 import { P } from '../../../../core/constants/permissions';
-import { ExportFormat, LocationListItem, ReportKey, ReportQuery, ReportResponse } from '../../../../core/models';
-import { dateInputToIso, humanize, saveBlob } from '../../../../core/utils/format';
+import { map } from 'rxjs';
+import { LocationListItem, ReportKey, ReportQuery, ReportResponse } from '../../../../core/models';
+import { ExportColumn, Exporter } from '../../../../core/services/exporter';
+import { dateInputToIso, humanize } from '../../../../core/utils/format';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SearchInput } from '../../../../shared/components/search-input/search-input';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
@@ -18,15 +21,16 @@ interface ReportDef {
   icon: string;
 }
 
-// ReportsController: one tab per report + export (xlsx / csv / pdf, needs reports.export).
+// ReportsController: one tab per report. Excel / PDF are built in the browser from the report rows.
 @Component({
-  imports: [PageHeader, DataTable, SearchInput, StatusBadge, HumanizePipe, DatePipe, DecimalPipe],
+  imports: [PageHeader, DataTable, SearchInput, StatusBadge, ExportButtons, HumanizePipe, DatePipe, DecimalPipe],
   selector: 'app-reports',
   templateUrl: './reports.html',
 })
 export class Reports implements OnInit {
   private readonly api = inject(ReportsApi);
   private readonly catalog = inject(CatalogApi);
+  private readonly exporter = inject(Exporter);
   readonly auth = inject(Auth);
   readonly canExport = computed(() => this.auth.hasPermission(P.reports.export));
 
@@ -44,7 +48,6 @@ export class Reports implements OnInit {
   readonly active = signal<ReportKey>('reservations');
   readonly result = signal<ReportResponse<Record<string, unknown>> | null>(null);
   readonly loading = signal(true);
-  readonly exporting = signal<ExportFormat | null>(null);
   readonly locations = signal<LocationListItem[]>([]);
   readonly page = signal(1);
   readonly pageSize = 20;
@@ -54,6 +57,28 @@ export class Reports implements OnInit {
     const first = this.result()?.data?.[0];
     return first ? Object.keys(first) : [];
   });
+  readonly activeLabel = computed(() => this.reports.find((r) => r.key === this.active())?.label ?? 'Report');
+  readonly exportColumns = computed<ExportColumn<Record<string, unknown>>[]>(() =>
+    this.columns().map((col) => {
+      const sample = this.result()?.data?.find((r) => r[col] !== null && r[col] !== undefined)?.[col];
+      const k = this.kind(col, sample);
+      return {
+        label: this.header(col),
+        value: (row: Record<string, unknown>) => row[col],
+        type: k === 'date' ? 'date' : k === 'money' ? 'money' : typeof sample === 'number' ? 'number' : 'text',
+      } as ExportColumn<Record<string, unknown>>;
+    }),
+  );
+  readonly exportSubtitle = computed(() => {
+    const f = this.filters();
+    return [f.from && `From ${f.from}`, f.to && `to ${f.to}`, f.status && `Status: ${f.status}`, f.search && `Search: ${f.search}`].filter(Boolean).join(' ');
+  });
+  // all the rows of the report with the current filters
+  readonly loadAll = () =>
+    this.exporter.fetchAll((page, pageSize) =>
+      this.api.get(this.active(), { ...this.query(), page, pageSize }).pipe(map((r) => ({ data: r.data, total: r.meta?.total_count ?? r.data.length }))),
+    );
+
   readonly summary = computed(() => Object.entries(this.result()?.summary ?? {}));
   readonly chart = computed(() => {
     const s = this.result()?.chart?.[0];
@@ -113,16 +138,6 @@ export class Reports implements OnInit {
     });
   }
 
-  export(format: ExportFormat): void {
-    this.exporting.set(format);
-    this.api.export(this.active(), this.query(), format).subscribe({
-      next: ({ blob, fileName }) => {
-        saveBlob(blob, fileName);
-        this.exporting.set(null);
-      },
-      error: () => this.exporting.set(null),
-    });
-  }
 
   // How to show a cell
   kind(col: string, value: unknown): 'date' | 'status' | 'money' | 'bool' | 'text' {

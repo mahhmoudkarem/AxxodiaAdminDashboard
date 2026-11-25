@@ -10,28 +10,37 @@
 }
 
 <app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No tasks" emptyMessage="No tasks match these filters." [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
-  <div toolbar class="flex flex-col gap-3 border-b border-brand-beige p-4 lg:flex-row lg:items-center">
-    <select class="input lg:w-48" (change)="set('status', $any($event.target).value)" aria-label="Status">
-      <option value="">All statuses</option>
-      @for (s of statuses; track s) {
-        <option [value]="s">{{ s | humanize }}</option>
-      }
-    </select>
-    <select class="input lg:w-56" (change)="set('locationId', $any($event.target).value)" aria-label="Location">
-      <option value="">All locations</option>
-      @for (l of locations(); track l.id) {
-        <option [value]="l.id">{{ l.name_en }}</option>
-      }
-    </select>
-    <div class="flex items-center gap-2">
-      <input type="date" class="input" (change)="set('from', $any($event.target).value)" aria-label="From" />
-      <span class="text-stone-400">→</span>
-      <input type="date" class="input" (change)="set('to', $any($event.target).value)" aria-label="To" />
+  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto] xl:items-end">
+    <div>
+      <label class="label">Status</label>
+      <select class="input" (change)="set('status', $any($event.target).value)">
+        <option value="">All statuses</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ s | humanize }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">Location</label>
+      <select class="input" (change)="set('locationId', $any($event.target).value)">
+        <option value="">All locations</option>
+        @for (l of locations(); track l.id) {
+          <option [value]="l.id">{{ l.name_en }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">From</label>
+      <input type="date" class="input" (change)="set('from', $any($event.target).value)" />
+    </div>
+    <div>
+      <label class="label">To</label>
+      <input type="date" class="input" (change)="set('to', $any($event.target).value)" />
     </div>
     @if (canExport()) {
-      <button type="button" class="btn btn-outline lg:ml-auto" (click)="export()" [disabled]="exporting()">
-        <i class="fa-solid" [class.fa-file-excel]="!exporting()" [class.fa-circle-notch]="exporting()" [class.fa-spin]="exporting()"></i> Excel
-      </button>
+      <div class="sm:col-span-2 xl:col-span-1">
+        <app-export-buttons [title]="exportTitle()" [fileName]="'axxodia-' + kind() + '-tasks'" [columns]="exportColumns" [load]="loadAll" />
+      </div>
     }
   </div>
 

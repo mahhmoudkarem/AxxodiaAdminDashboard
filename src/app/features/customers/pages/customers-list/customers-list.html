@@ -1,14 +1,11 @@
 <app-page-header title="Customers" subtitle="People who use the Axxodia app" icon="fa-users">
   @if (canExport()) {
-    <button type="button" class="btn btn-primary" (click)="export('xlsx')" [disabled]="!!exporting()">
-      <i class="fa-solid" [class.fa-file-excel]="exporting() !== 'xlsx'" [class.fa-circle-notch]="exporting() === 'xlsx'" [class.fa-spin]="exporting() === 'xlsx'"></i> Export to Excel
-    </button>
-    <button type="button" class="btn btn-outline" (click)="export('csv')" [disabled]="!!exporting()"><i class="fa-solid fa-file-csv"></i> CSV</button>
+    <app-export-buttons title="Customers" fileName="axxodia-customers" [columns]="exportColumns" [load]="loadAll" />
   }
 </app-page-header>
 
 @if (summary(); as s) {
-  <div class="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <div class="mb-5 grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
     <app-stat-card label="Customers" [value]="s.customers" [hint]="s.active_customers + ' active · ' + s.disabled_customers + ' blocked'" icon="fa-users" />
     <app-stat-card label="New in the last 7 days" [value]="s.new_customers_last7_days" icon="fa-user-plus" tone="gold" />
     <app-stat-card label="Staying now" [value]="s.checked_in_now" icon="fa-bed" tone="success" />

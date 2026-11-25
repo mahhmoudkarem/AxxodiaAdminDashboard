@@ -28,7 +28,18 @@
             "styles": [
               "src/styles.css"
             ],
-            "outputMode": "static"
+            "outputMode": "static",
+            "allowedCommonJsDependencies": [
+              "exceljs",
+              "html2canvas-pro",
+              "jspdf",
+              "core-js",
+              "raf",
+              "rgbcolor",
+              "canvg",
+              "dompurify",
+              "html2canvas"
+            ]
           },
           "configurations": {
             "production": {

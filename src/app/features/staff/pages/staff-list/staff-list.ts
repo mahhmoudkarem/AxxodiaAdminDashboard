@@ -7,6 +7,10 @@ import { LocationListItem, StaffMember, StaffRole } from '../../../../core/model
 import { Confirm } from '../../../../core/services/confirm';
 import { Toast } from '../../../../core/services/toast';
 import { humanize } from '../../../../core/utils/format';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
+import { ExportColumn } from '../../../../core/services/exporter';
+import { map } from 'rxjs';
+import { Exporter } from '../../../../core/services/exporter';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
 import { Modal } from '../../../../shared/components/modal/modal';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
@@ -19,7 +23,7 @@ import { StaffApi } from '../../services/staff-api';
 
 // AdminStaffController: list / details for admins, create / edit / activate / reset password need staff.manage.
 @Component({
-  imports: [PageHeader, DataTable, SearchInput, StatusBadge, Modal, ReactiveFormsModule, HumanizePipe, DatePipe],
+  imports: [PageHeader, DataTable, SearchInput, StatusBadge, Modal, ExportButtons, ReactiveFormsModule, HumanizePipe, DatePipe],
   selector: 'app-staff-list',
   templateUrl: './staff-list.html',
 })
@@ -29,6 +33,7 @@ export class StaffList implements OnInit {
   private readonly toast = inject(Toast);
   private readonly confirm = inject(Confirm);
   private readonly fb = inject(FormBuilder);
+  private readonly exporter = inject(Exporter);
   readonly auth = inject(Auth);
   readonly canManage = computed(() => this.auth.hasPermission(P.staff.manage));
 
@@ -62,6 +67,22 @@ export class StaffList implements OnInit {
     must_change_password: [true],
   });
 
+  readonly exportColumns: ExportColumn<StaffMember>[] = [
+    { label: 'Name', value: (s) => s.name },
+    { label: 'Email', value: (s) => s.email },
+    { label: 'Role', value: (s) => humanize(s.role) },
+    { label: 'Location', value: (s) => s.location_name_en ?? 'All locations' },
+    { label: 'Presence', value: (s) => s.presence },
+    { label: 'Open tasks', value: (s) => s.open_tasks, type: 'number' },
+    { label: 'Last sign-in', value: (s) => s.last_login_at, type: 'date' },
+    { label: 'Status', value: (s) => (s.is_active ? 'Active' : 'Disabled') },
+    { label: 'Created', value: (s) => s.created_at, type: 'date' },
+  ];
+  readonly loadAll = () =>
+    this.exporter.fetchAll((page, pageSize) =>
+      this.api.list({ ...this.listQuery(), page, page_size: pageSize }).pipe(map((r) => ({ data: r.data, total: r.meta.total }))),
+    );
+
   ngOnInit(): void {
     this.api.roles().subscribe((r) => this.roles.set(r));
     this.catalog.allLocations().subscribe({ next: (res) => this.locations.set(res.data), error: () => {} });
@@ -81,19 +102,21 @@ export class StaffList implements OnInit {
     this.load();
   }
 
-  load(): void {
+  private listQuery() {
     const f = this.filters();
+    return {
+      search: f.search || null,
+      role: f.role || null,
+      location_id: f.location_id ? Number(f.location_id) : null,
+      is_active: f.is_active === '' ? null : f.is_active === 'true',
+      working: f.working || null,
+    };
+  }
+
+  load(): void {
     this.loading.set(true);
     this.api
-      .list({
-        page: this.page(),
-        page_size: this.pageSize,
-        search: f.search || null,
-        role: f.role || null,
-        location_id: f.location_id ? Number(f.location_id) : null,
-        is_active: f.is_active === '' ? null : f.is_active === 'true',
-        working: f.working || null,
-      })
+      .list({ ...this.listQuery(), page: this.page(), page_size: this.pageSize })
       .subscribe({
         next: (res) => {
           this.rows.set(res.data);

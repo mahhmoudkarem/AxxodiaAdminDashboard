@@ -3,39 +3,60 @@
 </app-page-header>
 
 <app-data-table [loading]="loading()" [empty]="!rows().length" emptyTitle="No requests" [page]="page()" [pageSize]="pageSize" [total]="total()" (pageChange)="goTo($event)">
-  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 md:grid-cols-3 xl:grid-cols-6">
-    <app-search-input placeholder="Search..." (search)="set('q', $event)" />
-    <select class="input" (change)="set('status', $any($event.target).value)" aria-label="Status">
-      <option value="">All statuses</option>
-      @for (s of statuses; track s) {
-        <option [value]="s">{{ s | humanize }}</option>
-      }
-    </select>
-    <select class="input" (change)="set('payment_status', $any($event.target).value)" aria-label="Payment">
-      <option value="">All payments</option>
-      @for (s of paymentStatuses; track s) {
-        <option [value]="s">{{ s | humanize }}</option>
-      }
-    </select>
-    <select class="input" (change)="set('service_type', $any($event.target).value)" aria-label="Service">
-      <option value="">All services</option>
-      @for (t of types; track t) {
-        <option [value]="t">{{ t | humanize }}</option>
-      }
-    </select>
-    <select class="input" (change)="set('location_id', $any($event.target).value)" aria-label="Location">
-      <option value="">All locations</option>
-      @for (l of locations(); track l.id) {
-        <option [value]="l.id">{{ l.name_en }}</option>
-      }
-    </select>
-    <label class="flex items-center gap-2 rounded-xl border border-brand-beige bg-white px-3 text-sm text-stone-600">
-      <input type="checkbox" class="accent-danger" (change)="set('overdue_only', $any($event.target).checked)" /> Overdue only
-    </label>
-    <div class="flex items-center gap-2 md:col-span-3 xl:col-span-2">
-      <input type="date" class="input" (change)="set('date_from', $any($event.target).value)" aria-label="From" />
-      <span class="text-stone-400">→</span>
-      <input type="date" class="input" (change)="set('date_to', $any($event.target).value)" aria-label="To" />
+  <div toolbar class="grid gap-3 border-b border-brand-beige p-4 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="sm:col-span-2">
+      <label class="label">Search</label>
+      <app-search-input placeholder="Guest, phone or room..." (search)="set('q', $event)" />
+    </div>
+    <div>
+      <label class="label">From</label>
+      <input type="date" class="input" (change)="set('date_from', $any($event.target).value)" />
+    </div>
+    <div>
+      <label class="label">To</label>
+      <input type="date" class="input" (change)="set('date_to', $any($event.target).value)" />
+    </div>
+    <div>
+      <label class="label">Status</label>
+      <select class="input" (change)="set('status', $any($event.target).value)">
+        <option value="">All statuses</option>
+        @for (s of statuses; track s) {
+          <option [value]="s">{{ s | humanize }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">Payment</label>
+      <select class="input" (change)="set('payment_status', $any($event.target).value)">
+        <option value="">All payments</option>
+        @for (s of paymentStatuses; track s) {
+          <option [value]="s">{{ s | humanize }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">Service</label>
+      <select class="input" (change)="set('service_type', $any($event.target).value)">
+        <option value="">All services</option>
+        @for (t of types; track t) {
+          <option [value]="t">{{ t | humanize }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label class="label">Location</label>
+      <select class="input" (change)="set('location_id', $any($event.target).value)">
+        <option value="">All locations</option>
+        @for (l of locations(); track l.id) {
+          <option [value]="l.id">{{ l.name_en }}</option>
+        }
+      </select>
+    </div>
+    <div class="flex flex-wrap items-center justify-between gap-3 sm:col-span-2 lg:col-span-4">
+      <label class="flex items-center gap-2 text-sm font-semibold text-stone-600">
+        <input type="checkbox" class="h-4 w-4 accent-danger" (change)="set('overdue_only', $any($event.target).checked)" /> Overdue only
+      </label>
+      <app-export-buttons title="Service requests" fileName="axxodia-service-requests" [columns]="exportColumns" [load]="loadAll" />
     </div>
   </div>
 

@@ -28,6 +28,12 @@
     box-sizing: border-box;
   }
 
+  html,
+  body {
+    /* nothing may push the page sideways on phones; wide tables scroll inside .table-wrap */
+    overflow-x: clip;
+  }
+
   body {
     margin: 0;
     min-height: 100vh;
@@ -50,16 +56,26 @@
   button:disabled {
     cursor: not-allowed;
   }
+
+  /* grid / flex children may shrink below their content (otherwise tables stretch the page) */
+  .grid > *,
+  main {
+    min-width: 0;
+  }
+
+  img {
+    max-width: 100%;
+  }
 }
 
 /* ============ Shared UI building blocks ============ */
 @layer components {
   .card {
-    @apply rounded-2xl border border-brand-beige bg-white shadow-sm;
+    @apply min-w-0 rounded-2xl border border-brand-beige bg-white shadow-sm;
   }
 
   .card-body {
-    @apply p-5 md:p-6;
+    @apply p-4 sm:p-5 md:p-6;
   }
 
   .card-title {
@@ -67,7 +83,7 @@
   }
 
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:opacity-50;
   }
 
   .btn-sm {
@@ -103,7 +119,7 @@
   }
 
   .input {
-    @apply w-full rounded-xl border border-brand-beige bg-white px-3.5 py-2.5 text-sm text-brand-dark outline-none transition placeholder:text-stone-400 focus:border-brand-taupe focus:ring-2 focus:ring-brand-taupe/25 disabled:bg-brand-ivory;
+    @apply block w-full min-w-0 rounded-xl border border-brand-beige bg-white px-3.5 py-2.5 text-sm text-brand-dark outline-none transition placeholder:text-stone-400 focus:border-brand-taupe focus:ring-2 focus:ring-brand-taupe/25 disabled:bg-brand-ivory;
   }
 
   .input.ng-invalid.ng-touched {
@@ -114,8 +130,10 @@
     @apply mt-1 text-xs text-danger;
   }
 
+  /* horizontal scroll INSIDE the table on small screens */
   .table-wrap {
-    @apply overflow-x-auto;
+    @apply w-full max-w-full overflow-x-auto overscroll-x-contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .table {
@@ -123,7 +141,7 @@
   }
 
   .table th {
-    @apply border-b border-brand-beige bg-brand-ivory/60 px-4 py-3 text-xs font-bold uppercase tracking-wider text-stone-500;
+    @apply whitespace-nowrap border-b border-brand-beige bg-brand-ivory/60 px-4 py-3 text-xs font-bold uppercase tracking-wider text-stone-500;
   }
 
   .table td {
@@ -139,7 +157,7 @@
   }
 
   .tab {
-    @apply rounded-xl px-4 py-2 text-sm font-semibold text-stone-500 transition hover:bg-white hover:text-brand-brown;
+    @apply shrink-0 whitespace-nowrap rounded-xl px-3 py-2 text-sm sm:px-4 font-semibold text-stone-500 transition hover:bg-white hover:text-brand-brown;
   }
 
   .tab-active {

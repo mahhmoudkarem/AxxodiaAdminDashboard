@@ -10,8 +10,6 @@ export type ReportKey =
   | 'payments'
   | 'offers';
 
-export type ExportFormat = 'xlsx' | 'csv' | 'pdf';
-
 // ReportQuery has no [FromQuery(Name)] so the query keys are the C# property names (case-insensitive).
 export interface ReportQuery {
   from?: string | null;

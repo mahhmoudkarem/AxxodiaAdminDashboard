@@ -6,6 +6,8 @@ import { P } from '../../../../core/constants/permissions';
 import { ReservationListItem, ReservationStatus } from '../../../../core/models';
 import { Confirm } from '../../../../core/services/confirm';
 import { Toast } from '../../../../core/services/toast';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
+import { ExportColumn } from '../../../../core/services/exporter';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
 import { PageHeader } from '../../../../shared/components/page-header/page-header';
 import { SearchInput } from '../../../../shared/components/search-input/search-input';
@@ -14,7 +16,7 @@ import { ReservationsApi } from '../../services/reservations-api';
 
 // GET /admin/reservations returns the whole list -> filtering and paging happen here.
 @Component({
-  imports: [PageHeader, DataTable, SearchInput, StatusBadge, RouterLink, DatePipe],
+  imports: [PageHeader, DataTable, SearchInput, StatusBadge, ExportButtons, RouterLink, DatePipe],
   selector: 'app-reservations-list',
   templateUrl: './reservations-list.html',
 })
@@ -61,6 +63,18 @@ export class ReservationsList implements OnInit {
   });
 
   readonly paged = computed(() => this.filtered().slice((this.page() - 1) * this.pageSize, this.page() * this.pageSize));
+
+  readonly exportColumns: ExportColumn<ReservationListItem>[] = [
+    { label: 'Reference', value: (r) => r.reference_no },
+    { label: 'Guest', value: (r) => r.guest_name },
+    { label: 'Phone', value: (r) => r.guest_phone },
+    { label: 'Room', value: (r) => r.room_number },
+    { label: 'Check-in', value: (r) => r.check_in, type: 'date' },
+    { label: 'Check-out', value: (r) => r.check_out, type: 'date' },
+    { label: 'Guests', value: (r) => r.guests_count, type: 'number' },
+    { label: 'Status', value: (r) => r.status },
+  ];
+  readonly loadAll = async () => this.filtered();
 
   ngOnInit(): void {
     this.load();

@@ -4,8 +4,11 @@ import { RouterLink } from '@angular/router';
 import { Auth } from '../../../../core/auth/services/auth';
 import { P } from '../../../../core/constants/permissions';
 import { LocationListItem, ReportQuery, Room, TASK_STATUSES, TaskReportRow } from '../../../../core/models';
-import { dateInputToIso, formatDuration, saveBlob } from '../../../../core/utils/format';
+import { map } from 'rxjs';
+import { ExportColumn, Exporter } from '../../../../core/services/exporter';
+import { dateInputToIso, formatDuration } from '../../../../core/utils/format';
 import { DataTable } from '../../../../shared/components/data-table/data-table';
+import { ExportButtons } from '../../../../shared/components/export-buttons/export-buttons';
 import { StatusBadge } from '../../../../shared/components/status-badge/status-badge';
 import { HumanizePipe } from '../../../../shared/pipes/humanize-pipe';
 import { CatalogApi } from '../../../catalog/services/catalog-api';
@@ -15,12 +18,13 @@ import { ReportsApi } from '../../services/reports-api';
 // The API has no admin list endpoint for tasks, so it uses /admin/reports/housekeeping | maintenance.
 @Component({
   selector: 'app-task-report',
-  imports: [DataTable, StatusBadge, HumanizePipe, DatePipe, RouterLink],
+  imports: [DataTable, StatusBadge, ExportButtons, HumanizePipe, DatePipe, RouterLink],
   templateUrl: './task-report.html',
 })
 export class TaskReport implements OnInit {
   private readonly reports = inject(ReportsApi);
   private readonly catalog = inject(CatalogApi);
+  private readonly exporter = inject(Exporter);
   readonly auth = inject(Auth);
 
   readonly kind = input.required<'housekeeping' | 'maintenance'>();
@@ -33,7 +37,6 @@ export class TaskReport implements OnInit {
   readonly locations = signal<LocationListItem[]>([]);
   readonly rooms = signal<Room[]>([]);
   readonly loading = signal(true);
-  readonly exporting = signal(false);
   readonly page = signal(1);
   readonly pageSize = 20;
   readonly total = signal(0);
@@ -48,6 +51,21 @@ export class TaskReport implements OnInit {
     const m = new Map(this.rooms().map((r) => [r.id, r.room_number]));
     return (id: number) => m.get(id) ?? `#${id}`;
   });
+  readonly exportTitle = computed(() => (this.kind() === 'housekeeping' ? 'Housekeeping tasks' : 'Maintenance tasks'));
+  readonly exportColumns: ExportColumn<TaskReportRow>[] = [
+    { label: 'Task', value: (r) => `#${r.task_id}` },
+    { label: 'Location', value: (r) => this.locationName()(r.location_id) },
+    { label: 'Room', value: (r) => this.roomNumber()(r.room_id) },
+    { label: 'Employee', value: (r) => r.assigned_staff_name },
+    { label: 'Status', value: (r) => r.status },
+    { label: 'Started', value: (r) => r.started_at, type: 'date' },
+    { label: 'Completed', value: (r) => r.completed_at, type: 'date' },
+    { label: 'Duration', value: (r) => (r.duration_seconds == null ? '' : formatDuration(r.duration_seconds)) },
+  ];
+  readonly loadAll = () =>
+    this.exporter.fetchAll((page, pageSize) =>
+      this.reports.get<TaskReportRow>(this.kind(), { ...this.query(), page, pageSize }).pipe(map((r) => ({ data: r.data, total: r.meta?.total_count ?? r.data.length }))),
+    );
   readonly summaryEntries = computed(() => Object.entries(this.summary()).slice(0, 6));
   readonly duration = formatDuration;
 
@@ -93,14 +111,4 @@ export class TaskReport implements OnInit {
     this.load();
   }
 
-  export(): void {
-    this.exporting.set(true);
-    this.reports.export(this.kind(), this.query(), 'xlsx').subscribe({
-      next: ({ blob, fileName }) => {
-        saveBlob(blob, fileName);
-        this.exporting.set(false);
-      },
-      error: () => this.exporting.set(false),
-    });
-  }
 }
